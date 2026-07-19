@@ -1,0 +1,19 @@
+{
+  "name": "website-desa-sukarama",
+  "version": "1.0.0",
+  "description": "Website Resmi Desa Sukarama, Kecamatan Bojongpicung, Kabupaten Cianjur",
+  "main": "BE/server.js",
+  "scripts": {
+    "start": "node BE/server.js",
+    "dev": "node BE/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1"
+  },
+  "keywords": ["desa", "sukarama", "cianjur", "bojongpicung", "website-desa"],
+  "author": "Tim KKN Desa Sukarama",
+  "license": "MIT"
+}

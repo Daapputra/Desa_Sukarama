@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Website Resmi Desa Sukarama, Kecamatan Bojongpicung, Kabupaten Cianjur. Portal informasi desa, layanan surat online, dan produk UMKM lokal.">
+  <meta name="keywords" content="Desa Sukarama, Bojongpicung, Cianjur, website desa, layanan surat online, UMKM desa">
+  <meta name="author" content="Pemerintah Desa Sukarama">
+  <meta name="theme-color" content="#1B5E20">
+  <title>Desa Sukarama — Website Resmi Desa Sukarama, Kec. Bojongpicung, Kab. Cianjur</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="main-header"></header>
+    <main id="main-content">
+      <div class="page-loader">
+        <div class="loader-spinner"></div>
+        <p>Memuat halaman...</p>
+      </div>
+    </main>
+    <footer id="main-footer"></footer>
+  </div>
+
+  <!-- Scroll to top button -->
+  <button id="scroll-top-btn" class="scroll-top-btn" aria-label="Kembali ke atas" title="Kembali ke atas">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+
+  <!-- Toast notification container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/js/components/header.js"></script>
+  <script src="/js/components/footer.js"></script>
+  <script src="/js/pages/beranda.js"></script>
+  <script src="/js/pages/profil.js"></script>
+  <script src="/js/pages/layanan.js"></script>
+  <script src="/js/pages/umkm.js"></script>
+  <script src="/js/pages/kontak.js"></script>
+  <script src="/js/pages/admin.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

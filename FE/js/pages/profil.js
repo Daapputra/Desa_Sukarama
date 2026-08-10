@@ -168,12 +168,11 @@ function renderProfil(container) {
           <p>Lokasi Desa Sukarama di Kecamatan Bojongpicung, Kabupaten Cianjur</p>
           <span class="accent-line"></span>
         </div>
-        <div class="map-container fade-in">
-          <iframe 
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31673.88!2d107.14!3d-6.85!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e685f1c8e2b0c2d%3A0x0!2sBojongpicung%2C+Cianjur!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
-            allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-            title="Peta Desa Sukarama">
-          </iframe>
+        <div class="map-container fade-in" id="profil-map" style="height:400px;z-index:1;"></div>
+        <div style="margin-top:var(--space-md); text-align:center;">
+          <a href="https://www.google.com/maps/search/?api=1&query=Desa+Sukarama,+Bojongpicung,+Cianjur" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;font-size:0.9rem;">
+            <i data-lucide="map-pin" style="width:16px;height:16px;"></i> Buka di Google Maps
+          </a>
         </div>
       </div>
     </section>
@@ -194,12 +193,13 @@ function renderProfil(container) {
 
   renderStrukturOrganisasi();
   renderGallery();
+  renderProfilMap();
 }
 
 function renderStrukturOrganisasi() {
   const grid = document.getElementById('profil-struktur-grid');
   const perangkat = [
-    { nama: 'H. Ahmad Suryadi, S.Sos', jabatan: 'Kepala Desa', inisial: 'AS' },
+    { nama: 'Wahyu Komara', jabatan: 'Kepala Desa', inisial: 'WK' },
     { nama: 'Dedi Kurniawan, S.AP', jabatan: 'Sekretaris Desa', inisial: 'DK' },
     { nama: 'Siti Nurhaliza', jabatan: 'Kaur Keuangan', inisial: 'SN' },
     { nama: 'Rina Marlina', jabatan: 'Kaur Perencanaan', inisial: 'RM' },
@@ -243,4 +243,28 @@ function renderGallery() {
   `).join('');
 
   if (window.lucide) lucide.createIcons();
+}
+
+function renderProfilMap() {
+  const mapEl = document.getElementById('profil-map');
+  if (!mapEl || !window.L) return;
+
+  const lat = -6.8248;
+  const lng = 107.2407;
+
+  const map = L.map('profil-map', {
+    scrollWheelZoom: false
+  }).setView([lat, lng], 14);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+
+  L.marker([lat, lng]).addTo(map)
+    .bindPopup('<b>Desa Sukarama</b><br>Kec. Bojongpicung, Kab. Cianjur')
+    .openPopup();
+
+  // Fix map rendering inside hidden/animated containers
+  setTimeout(() => map.invalidateSize(), 300);
 }

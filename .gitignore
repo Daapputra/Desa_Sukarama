@@ -1,0 +1,4 @@
+node_modules/
+Database/data/*.db-shm
+Database/data/*.db-wal
+.DS_Store

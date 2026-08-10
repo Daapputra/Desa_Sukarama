@@ -45,12 +45,11 @@ function renderKontak(container) {
               </div>
             </div>
 
-            <div class="map-container" style="height:250px">
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31673.88!2d107.14!3d-6.85!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e685f1c8e2b0c2d%3A0x0!2sBojongpicung%2C+Cianjur!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid"
-                allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                title="Peta Desa Sukarama">
-              </iframe>
+            <div class="map-container" style="height:250px" id="kontak-map"></div>
+            <div style="margin-top:var(--space-sm); text-align:center;">
+              <a href="https://www.google.com/maps/search/?api=1&query=Desa+Sukarama,+Bojongpicung,+Cianjur" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:0.85rem;">
+                <i data-lucide="map-pin" style="width:14px;height:14px;"></i> Buka di Google Maps
+              </a>
             </div>
           </div>
 
@@ -89,6 +88,9 @@ function renderKontak(container) {
 
   if (window.lucide) lucide.createIcons();
 
+  // Initialize Leaflet map
+  renderKontakMap();
+
   // Handle Form Submit
   const form = document.getElementById('form-kontak');
   if (form) {
@@ -120,4 +122,27 @@ function renderKontak(container) {
       }
     });
   }
+}
+
+function renderKontakMap() {
+  const mapEl = document.getElementById('kontak-map');
+  if (!mapEl || !window.L) return;
+
+  const lat = -6.8248;
+  const lng = 107.2407;
+
+  const map = L.map('kontak-map', {
+    scrollWheelZoom: false
+  }).setView([lat, lng], 14);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+
+  L.marker([lat, lng]).addTo(map)
+    .bindPopup('<b>Kantor Desa Sukarama</b><br>Kec. Bojongpicung, Kab. Cianjur')
+    .openPopup();
+
+  setTimeout(() => map.invalidateSize(), 300);
 }

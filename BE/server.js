@@ -161,11 +161,11 @@ app.post('/api/surat', upload.single('dokumen'), (req, res) => {
   if (!nama || !nik || !no_kk || !jenis_surat || !keperluan || !no_wa) {
     return res.status(400).json({ error: 'Semua field wajib harus diisi' });
   }
-  if (!/^\d{16}$/.test(nik)) {
-    return res.status(400).json({ error: 'NIK harus terdiri dari 16 digit angka' });
+  if (!/^\d{3,16}$/.test(nik)) {
+    return res.status(400).json({ error: 'NIK harus berupa angka (3 - 16 digit)' });
   }
-  if (!/^\d{16}$/.test(no_kk)) {
-    return res.status(400).json({ error: 'Nomor KK harus terdiri dari 16 digit angka' });
+  if (!/^\d{3,16}$/.test(no_kk)) {
+    return res.status(400).json({ error: 'Nomor KK harus berupa angka (3 - 16 digit)' });
   }
   const refNumber = generateRefNumber();
   const dokumenPath = req.file ? `/uploads/${req.file.filename}` : null;

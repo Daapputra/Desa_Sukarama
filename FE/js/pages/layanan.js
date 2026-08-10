@@ -53,14 +53,14 @@ function renderLayanan(container) {
                 </div>
                 <div class="form-group">
                   <label class="form-label">Nomor Induk Kependudukan (NIK) <span class="required">*</span></label>
-                  <input type="text" class="form-input" name="nik" required pattern="[0-9]{16}" placeholder="16 digit angka NIK">
+                  <input type="text" class="form-input" name="nik" required pattern="[0-9]{3,16}" placeholder="Masukkan NIK">
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Nomor Kartu Keluarga (KK) <span class="required">*</span></label>
-                  <input type="text" class="form-input" name="no_kk" required pattern="[0-9]{16}" placeholder="16 digit angka KK">
+                  <input type="text" class="form-input" name="no_kk" required pattern="[0-9]{3,16}" placeholder="Masukkan No. KK">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Nomor WhatsApp <span class="required">*</span></label>

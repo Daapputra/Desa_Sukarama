@@ -48,7 +48,7 @@ function renderBeranda(container) {
               online, serta mengenal produk UMKM unggulan desa kita. Semoga website ini bermanfaat 
               bagi kemajuan Desa Sukarama.
             </p>
-            <div class="welcome-name">H. Ahmad Suryadi, S.Sos</div>
+            <div class="welcome-name">Wahyu Komara</div>
             <div class="welcome-role">Kepala Desa Sukarama</div>
           </div>
         </div>

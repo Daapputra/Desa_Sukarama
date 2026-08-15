@@ -2,16 +2,26 @@
   "name": "website-desa-sukarama",
   "version": "1.0.0",
   "description": "Website Resmi Desa Sukarama, Kecamatan Bojongpicung, Kabupaten Cianjur",
-  "main": "BE/server.js",
+  "main": "apps/api/dist/server.js",
   "scripts": {
-    "start": "node BE/server.js",
-    "dev": "node BE/server.js"
+    "dev": "concurrently --names API,WEB --prefix-colors cyan,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "npm --prefix apps/api run build",
+    "build:web": "npm --prefix apps/web run build",
+    "start": "node apps/api/dist/server.js",
+    "start:legacy": "node BE/server.js",
+    "dev:legacy": "node BE/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   },
   "keywords": [
     "desa",

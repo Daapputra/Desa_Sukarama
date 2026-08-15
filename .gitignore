@@ -1,4 +1,8 @@
 node_modules/
-Database/data/*.db-shm
-Database/data/*.db-wal
+.env
+apps/*/.env
+.nuxt/
+.output/
+uploads/
 .DS_Store
+*.xlsx

@@ -45,11 +45,7 @@ watch(route, () => {
     <div class="container-app relative flex items-center justify-between h-[72px]">
       <!-- Logo -->
       <NuxtLink to="/" class="flex items-center gap-3 group">
-        <div
-          class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-800 to-green-600 flex items-center justify-center text-white font-extrabold text-sm shadow-lg shadow-green-900/20 group-hover:shadow-green-900/40 transition-shadow"
-        >
-          DS
-        </div>
+        <img src="/images/logo-desa.png" alt="Logo Desa Sukarama" class="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform" />
         <div class="hidden sm:block">
           <div class="font-bold text-slate-900 text-sm leading-tight">Desa Sukarama</div>
           <div class="text-[11px] text-muted-foreground leading-tight">Kec. Bojongpicung, Kab. Cianjur</div>

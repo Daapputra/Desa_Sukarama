@@ -11,9 +11,7 @@ const year = new Date().getFullYear()
         <!-- Brand -->
         <div>
           <div class="flex items-center justify-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-700 to-green-500 flex items-center justify-center text-white font-extrabold text-sm">
-              DS
-            </div>
+            <img src="/images/logo-desa.png" alt="Logo Desa Sukarama" class="w-10 h-10 object-contain drop-shadow-sm" />
             <span class="font-bold text-white text-base">Desa Sukarama</span>
           </div>
           <p class="text-sm text-slate-400 leading-7">

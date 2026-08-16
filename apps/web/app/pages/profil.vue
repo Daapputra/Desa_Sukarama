@@ -80,6 +80,14 @@ const demografi = [
           <div class="prose prose-slate max-w-none text-sm leading-7 space-y-4 text-slate-600">
             <p>Desa Sukarama merupakan salah satu desa di Kecamatan Bojongpicung, Kabupaten Cianjur, Provinsi Jawa Barat. Nama "Sukarama" berasal dari bahasa Sunda yang berarti "suka keramaian", mencerminkan semangat gotong royong dan kebersamaan masyarakatnya.</p>
             <p>Desa ini telah berdiri sejak zaman kolonial Belanda dan terus berkembang hingga saat ini. Dengan luas wilayah sekitar 385,5 hektar, Desa Sukarama terdiri dari 3 dusun, 4 RW, dan 12 RT yang dihuni oleh sekitar 4.523 jiwa penduduk.</p>
+            
+            <figure class="my-6">
+              <img src="/images/sejarah-jembatan.jpg" alt="Irigasi di Tjihea Vlakte tahun 1917" class="w-full rounded-2xl shadow-md border border-border" />
+              <figcaption class="text-center text-xs text-slate-500 mt-2 italic">
+                Irigasi di Tjihea Vlakte tahun 1917 (Dok: Nationaal Museum van Wereldculturen - TropenMuseum Belanda)
+              </figcaption>
+            </figure>
+
             <p>Mayoritas penduduk bermata pencaharian sebagai petani, dengan komoditas utama padi, palawija, dan tanaman perkebunan. Selain pertanian, UMKM juga menjadi penopang ekonomi masyarakat dengan berbagai produk unggulan seperti kerajinan anyaman bambu dan makanan khas tradisional.</p>
           </div>
         </div>

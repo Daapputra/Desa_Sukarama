@@ -32,6 +32,7 @@ export const suratPengajuan = pgTable('surat_pengajuan', {
   noWa: varchar('no_wa', { length: 50 }).notNull(),
   dokumenPath: text('dokumen_path'),
   status: varchar('status', { length: 50 }).default('Diajukan'),
+  metadata: text('metadata').$type<{ namaKk?: string, namaKtp?: string }>(),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
   check('surat_pengajuan_status_check', sql`${table.status} IN ('Diajukan', 'Diproses', 'Selesai')`),

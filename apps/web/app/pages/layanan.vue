@@ -16,11 +16,45 @@ const form = reactive({
   jenis_surat: '',
   keperluan: '',
   no_wa: '',
+  nama_kk: '',
+  nama_ktp: '',
+  tempat_lahir: '',
+  tanggal_lahir: '',
+  jenis_kelamin: '',
+  agama: '',
+  pekerjaan: '',
+  alamat: '',
   dokumen: null as File | null,
+})
+
+const nikFound = ref<boolean | null>(null)
+const checkingNik = ref(false)
+
+watch(() => form.nik, async (newNik) => {
+  if (newNik && newNik.length >= 16) {
+    checkingNik.value = true
+    try {
+      const res = await apiGet<any>(`/api/surat/cek-penduduk/${newNik}`)
+      if (res.found) {
+        nikFound.value = true
+        form.nama = res.namaLengkap
+        form.no_kk = res.noKk
+      } else {
+        nikFound.value = false
+      }
+    } catch {
+      nikFound.value = false
+    } finally {
+      checkingNik.value = false
+    }
+  } else {
+    nikFound.value = null
+  }
 })
 
 const jenisSuratOptions = [
   'Surat Keterangan Domisili',
+  'Surat Beda Nama',
   'Surat Keterangan Tidak Mampu',
   'Surat Keterangan Usaha',
   'Surat Pengantar KTP',
@@ -42,6 +76,13 @@ async function handleSubmit() {
     return
   }
 
+  if (nikFound.value === false) {
+    if (!form.tempat_lahir || !form.tanggal_lahir || !form.jenis_kelamin || !form.agama || !form.pekerjaan || !form.alamat) {
+      submitError.value = 'Mohon lengkapi seluruh data diri tambahan'
+      return
+    }
+  }
+
   submitting.value = true
   try {
     const fd = new FormData()
@@ -51,6 +92,20 @@ async function handleSubmit() {
     fd.append('jenis_surat', form.jenis_surat)
     fd.append('keperluan', form.keperluan)
     fd.append('no_wa', form.no_wa)
+    if (form.jenis_surat === 'Surat Beda Nama') {
+      fd.append('nama_kk', form.nama_kk)
+      fd.append('nama_ktp', form.nama_ktp)
+    }
+    
+    if (nikFound.value === false) {
+      fd.append('tempat_lahir', form.tempat_lahir)
+      fd.append('tanggal_lahir', form.tanggal_lahir)
+      fd.append('jenis_kelamin', form.jenis_kelamin)
+      fd.append('agama', form.agama)
+      fd.append('pekerjaan', form.pekerjaan)
+      fd.append('alamat', form.alamat)
+    }
+
     if (form.dokumen) fd.append('dokumen', form.dokumen)
 
     const res = await apiPost<{ ref_number: string }>('/api/surat', fd)
@@ -176,7 +231,7 @@ const steps = [
             </p>
             <button
               class="px-6 py-2.5 rounded-full bg-green-900 text-white text-sm font-semibold hover:bg-green-800 transition-colors"
-              @click="submitResult = null; Object.assign(form, { nama:'', nik:'', no_kk:'', jenis_surat:'', keperluan:'', no_wa:'', dokumen: null })"
+              @click="submitResult = null; Object.assign(form, { nama:'', nik:'', no_kk:'', jenis_surat:'', keperluan:'', no_wa:'', nama_kk:'', nama_ktp:'', dokumen: null })"
             >
               Ajukan Surat Baru
             </button>
@@ -190,23 +245,80 @@ const steps = [
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
-                <input v-model="form.nama" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nama sesuai KTP">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">NIK <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input v-model="form.nik" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all pr-10" placeholder="16 digit NIK Anda">
+                  <Loader2 v-if="checkingNik" class="w-4 h-4 text-green-700 absolute right-3 top-3.5 animate-spin" />
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">NIK <span class="text-red-500">*</span></label>
-                <input v-model="form.nik" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nomor Induk Kependudukan">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
+                <input v-model="form.nama" type="text" :disabled="nikFound" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500" placeholder="Nama sesuai KTP">
               </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">No. KK <span class="text-red-500">*</span></label>
-                <input v-model="form.no_kk" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nomor Kartu Keluarga">
+                <input v-model="form.no_kk" type="text" :disabled="nikFound" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-500" placeholder="Nomor Kartu Keluarga">
               </div>
               <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">No. WhatsApp <span class="text-red-500">*</span></label>
                 <input v-model="form.no_wa" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="08xxxxxxxxxx">
+              </div>
+            </div>
+
+            <div v-if="nikFound === false" class="mb-6 p-5 rounded-xl border border-orange-200 bg-orange-50/50">
+              <div class="flex items-start gap-3 mb-4">
+                <AlertCircle class="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 class="text-sm font-bold text-orange-900">NIK Belum Terdaftar</h4>
+                  <p class="text-xs text-orange-700 mt-1">Sistem belum menemukan NIK Anda. Mohon lengkapi biodata di bawah ini agar tersimpan secara permanen untuk kemudahan di masa mendatang.</p>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-2">Tempat Lahir <span class="text-red-500">*</span></label>
+                  <input v-model="form.tempat_lahir" type="text" class="w-full px-3 py-2.5 rounded-lg border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Contoh: Cianjur">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-2">Tanggal Lahir <span class="text-red-500">*</span></label>
+                  <input v-model="form.tanggal_lahir" type="date" class="w-full px-3 py-2.5 rounded-lg border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-2">Jenis Kelamin <span class="text-red-500">*</span></label>
+                  <select v-model="form.jenis_kelamin" class="w-full px-3 py-2.5 rounded-lg border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all bg-white">
+                    <option value="" disabled>Pilih Jenis Kelamin</option>
+                    <option value="L">Laki-laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-2">Agama <span class="text-red-500">*</span></label>
+                  <select v-model="form.agama" class="w-full px-3 py-2.5 rounded-lg border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all bg-white">
+                    <option value="" disabled>Pilih Agama</option>
+                    <option value="Islam">Islam</option>
+                    <option value="Kristen">Kristen</option>
+                    <option value="Katolik">Katolik</option>
+                    <option value="Hindu">Hindu</option>
+                    <option value="Buddha">Buddha</option>
+                    <option value="Konghucu">Konghucu</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-5">
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Pekerjaan <span class="text-red-500">*</span></label>
+                <input v-model="form.pekerjaan" type="text" class="w-full px-3 py-2.5 rounded-lg border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Contoh: Wiraswasta">
+              </div>
+              
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Alamat Lengkap <span class="text-red-500">*</span></label>
+                <textarea v-model="form.alamat" rows="2" class="w-full px-3 py-2.5 rounded-lg border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all resize-y" placeholder="Nama Jalan, Kp, RT/RW..."></textarea>
               </div>
             </div>
 
@@ -216,6 +328,21 @@ const steps = [
                 <option value="" disabled>— Pilih jenis surat —</option>
                 <option v-for="opt in jenisSuratOptions" :key="opt" :value="opt">{{ opt }}</option>
               </select>
+            </div>
+
+            <div v-if="form.jenis_surat === 'Surat Beda Nama'" class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 p-4 rounded-xl bg-orange-50 border border-orange-100">
+              <div class="col-span-1 sm:col-span-2">
+                <p class="text-xs font-semibold text-orange-800 mb-1">Informasi Khusus: Surat Beda Nama</p>
+                <p class="text-xs text-orange-600">Mohon isi perbedaan nama sesuai dokumen yang Anda miliki.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Nama Sesuai KK <span class="text-red-500">*</span></label>
+                <input v-model="form.nama_kk" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nama di Kartu Keluarga">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Nama Sesuai KTP <span class="text-red-500">*</span></label>
+                <input v-model="form.nama_ktp" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nama di KTP">
+              </div>
             </div>
 
             <div class="mb-6">

@@ -5,6 +5,7 @@ import { suratPengajuan, penduduk } from '../db/schema.js'
 import { getToken } from '../plugins/auth.js'
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
+import ImageModule from 'docxtemplater-image-module-free'
 import fs from 'fs'
 import path from 'path'
 
@@ -61,7 +62,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { nama, nik, no_kk, jenis_surat, keperluan, no_wa } = fields
+    const { nama, nik, no_kk, jenis_surat, keperluan, no_wa, nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat } = fields
 
     if (!nama || !nik || !no_kk || !jenis_surat || !keperluan || !no_wa) {
       return reply.status(400).send({ error: 'Semua field wajib harus diisi' })
@@ -75,12 +76,25 @@ export async function suratRoutes(fastify: FastifyInstance) {
 
     const refNumber = generateRefNumber()
 
-    // Otomatis masukkan NIK baru ke database penduduk jika belum ada
-    await db.insert(penduduk).values({
+    // Masukkan atau update NIK ke database penduduk
+    const insertData: any = {
       nik,
       noKk: no_kk,
       namaLengkap: nama,
-    }).onConflictDoNothing({ target: penduduk.nik })
+    }
+    const updateData: any = { noKk: no_kk, namaLengkap: nama }
+
+    if (tempat_lahir) { insertData.tempatLahir = tempat_lahir; updateData.tempatLahir = tempat_lahir }
+    if (tanggal_lahir) { insertData.tanggalLahir = tanggal_lahir; updateData.tanggalLahir = tanggal_lahir }
+    if (jenis_kelamin) { insertData.jenisKelamin = jenis_kelamin; updateData.jenisKelamin = jenis_kelamin }
+    if (agama) { insertData.agama = agama; updateData.agama = agama }
+    if (pekerjaan) { insertData.jenisPekerjaan = pekerjaan; updateData.jenisPekerjaan = pekerjaan }
+    if (alamat) { insertData.alamat = alamat; updateData.alamat = alamat }
+
+    await db.insert(penduduk).values(insertData).onConflictDoUpdate({ 
+      target: penduduk.nik,
+      set: updateData
+    })
 
     await db.insert(suratPengajuan).values({
       refNumber,
@@ -91,9 +105,34 @@ export async function suratRoutes(fastify: FastifyInstance) {
       keperluan,
       noWa: no_wa,
       dokumenPath,
+      metadata: { namaKk: nama_kk || '', namaKtp: nama_ktp || '' }
     })
 
     return reply.status(201).send({ ref_number: refNumber, message: 'Pengajuan surat berhasil dikirim' })
+  })
+
+  // GET /api/surat/cek-penduduk/:nik (public)
+  fastify.get('/api/surat/cek-penduduk/:nik', async (request, reply) => {
+    const { nik } = request.params as { nik: string }
+    
+    if (!/^\d{3,16}$/.test(nik)) {
+      return reply.status(400).send({ error: 'NIK tidak valid' })
+    }
+
+    const [warga] = await db
+      .select({
+        namaLengkap: penduduk.namaLengkap,
+        noKk: penduduk.noKk
+      })
+      .from(penduduk)
+      .where(eq(penduduk.nik, nik))
+      .limit(1)
+
+    if (!warga) {
+      return { found: false }
+    }
+    
+    return { found: true, namaLengkap: warga.namaLengkap, noKk: warga.noKk }
   })
 
   // GET /api/surat/cek/:nik (public)
@@ -240,26 +279,70 @@ export async function suratRoutes(fastify: FastifyInstance) {
     try {
       const content = fs.readFileSync(templatePath, 'binary')
       const zip = new PizZip(content)
+      
+      const opts = {
+        centered: false,
+        getImage(tagValue: string) {
+          return fs.readFileSync(tagValue)
+        },
+        getSize() {
+          return [150, 150] // Width and height of the signature
+        }
+      }
+      const imageModule = new ImageModule(opts)
+
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
+        modules: [imageModule],
+        nullGetter(part) {
+          if (!part.module) {
+            return "";
+          }
+          if (part.module === "rawxml") {
+            return "";
+          }
+          return "";
+        }
       })
 
-      // Set data untuk di-replace di dalam template Word
+      const ttdPath = path.resolve('../../uploads/ttd_sekdes.png')
+      
+      // Parse metadata untuk namaKk dan namaKtp
+      let metadata: any = {}
+      if (typeof surat.metadata === 'string') {
+        try { metadata = JSON.parse(surat.metadata) } catch(e){}
+      } else if (surat.metadata) {
+        metadata = surat.metadata
+      }
+
+      // Render dokumen dengan data
       doc.render({
         nama: warga?.namaLengkap || surat.nama,
         nik: surat.nik,
         noKk: surat.noKk,
+        keperluan: surat.keperluan,
         tempatLahir: warga?.tempatLahir || '',
         tanggalLahir: warga?.tanggalLahir || '',
         jenisKelamin: warga?.jenisKelamin || '',
+        statusPerkawinan: warga?.statusPerkawinan || '',
         agama: warga?.agama || '',
         pekerjaan: warga?.jenisPekerjaan || '',
         alamat: warga?.alamat || '',
         rt: warga?.rt || '',
         rw: warga?.rw || '',
-        keperluan: surat.keperluan,
-        tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        namaKk: metadata?.namaKk || '',
+        namaKtp: metadata?.namaKtp || '',
+        tempatLahirKk: warga?.tempatLahir || '',
+        tanggalLahirKk: warga?.tanggalLahir || '',
+        namaPejabat: 'WAWAN SAEPUDIN',
+        NamaPejabat: 'WAWAN SAEPUDIN',
+        jabatan: 'Sekretaris Desa',
+        Jabatan: 'Sekretaris Desa',
+        jabatanPejabat: 'Sekretaris Desa',
+        JabatanPejabat: 'Sekretaris Desa',
+        ttd: fs.existsSync(ttdPath) ? ttdPath : null
       })
 
       const buf = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' })

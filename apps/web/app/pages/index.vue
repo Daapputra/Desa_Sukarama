@@ -24,7 +24,7 @@ const produkUnggulan = computed(() => umkmList.value?.length ? umkmList.value : 
 const stats = [
   { icon: Users, label: 'Jumlah Penduduk', value: '7.500', color: 'bg-green-50 text-green-700' },
   { icon: Home, label: 'Kepala Keluarga', value: '1.500', color: 'bg-green-50 text-green-700' },
-  { icon: Map, label: 'Dusun / 8 RW / 24 RT', value: '3', color: 'bg-green-50 text-green-700' },
+  { icon: Map, label: 'Dusun / 6 RW / 33 RT', value: '3', color: 'bg-green-50 text-green-700' },
   { icon: Ruler, label: 'Luas Wilayah (Ha)', value: '485', color: 'bg-green-50 text-green-700' },
 ]
 

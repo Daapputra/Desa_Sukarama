@@ -10,7 +10,7 @@
     "build": "npm run build:api && npm run build:web",
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
-    "start": "node apps/api/dist/server.js",
+    "start": "node --env-file=apps/api/.env apps/api/dist/server.js",
     "start:legacy": "node BE/server.js",
     "dev:legacy": "node BE/server.js"
   },

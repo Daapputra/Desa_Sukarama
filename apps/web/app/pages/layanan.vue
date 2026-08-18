@@ -24,6 +24,15 @@ const form = reactive({
   agama: '',
   pekerjaan: '',
   alamat: '',
+  nama_program: '',
+  tahun_program: '',
+  nama_usaha: '',
+  sektor_usaha: '',
+  nomor_kontak: '',
+  bidang_usaha: '',
+  alamat_usaha: '',
+  lama_usaha: '',
+  penandatangan: 'Kepala Desa',
   dokumen: null as File | null,
 })
 
@@ -55,14 +64,8 @@ watch(() => form.nik, async (newNik) => {
 const jenisSuratOptions = [
   'Surat Keterangan Domisili',
   'Surat Beda Nama',
-  'Surat Keterangan Tidak Mampu',
   'Surat Keterangan Usaha',
-  'Surat Pengantar KTP',
-  'Surat Pengantar KK',
-  'Surat Keterangan Pindah',
-  'Surat Keterangan Kelahiran',
-  'Surat Keterangan Kematian',
-  'Surat Keterangan Lainnya',
+  'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu',
 ]
 
 const submitting = ref(false)
@@ -83,6 +86,20 @@ async function handleSubmit() {
     }
   }
 
+  if (form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu') {
+    if (!form.nama_program || !form.tahun_program) {
+      submitError.value = 'Nama Program dan Tahun Program wajib diisi'
+      return
+    }
+  }
+
+  if (form.jenis_surat === 'Surat Keterangan Usaha') {
+    if (!form.bidang_usaha || !form.alamat_usaha || !form.lama_usaha) {
+      submitError.value = 'Bidang usaha, alamat usaha, dan lama usaha wajib diisi'
+      return
+    }
+  }
+
   submitting.value = true
   try {
     const fd = new FormData()
@@ -96,6 +113,20 @@ async function handleSubmit() {
       fd.append('nama_kk', form.nama_kk)
       fd.append('nama_ktp', form.nama_ktp)
     }
+
+    if (form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu') {
+      fd.append('nama_program', form.nama_program)
+      fd.append('tahun_program', form.tahun_program)
+      fd.append('nama_usaha', form.nama_usaha)
+      fd.append('sektor_usaha', form.sektor_usaha)
+      fd.append('nomor_kontak', form.nomor_kontak)
+    }
+
+    if (form.jenis_surat === 'Surat Keterangan Usaha') {
+      fd.append('bidang_usaha', form.bidang_usaha)
+      fd.append('alamat_usaha', form.alamat_usaha)
+      fd.append('lama_usaha', form.lama_usaha)
+    }
     
     if (nikFound.value === false) {
       fd.append('tempat_lahir', form.tempat_lahir)
@@ -106,7 +137,9 @@ async function handleSubmit() {
       fd.append('alamat', form.alamat)
     }
 
-    if (form.dokumen) fd.append('dokumen', form.dokumen)
+    fd.append('penandatangan', form.penandatangan)
+
+    if (form.dokumen) { fd.append('dokumen', form.dokumen) }
 
     const res = await apiPost<{ ref_number: string }>('/api/surat', fd)
     submitResult.value = res
@@ -231,7 +264,7 @@ const steps = [
             </p>
             <button
               class="px-6 py-2.5 rounded-full bg-green-900 text-white text-sm font-semibold hover:bg-green-800 transition-colors"
-              @click="submitResult = null; Object.assign(form, { nama:'', nik:'', no_kk:'', jenis_surat:'', keperluan:'', no_wa:'', nama_kk:'', nama_ktp:'', dokumen: null })"
+              @click="submitResult = null; Object.assign(form, { nama:'', nik:'', no_kk:'', jenis_surat:'', keperluan:'', no_wa:'', nama_kk:'', nama_ktp:'', nama_program:'', tahun_program:'', nama_usaha:'', sektor_usaha:'', nomor_kontak:'', bidang_usaha:'', alamat_usaha:'', lama_usaha:'', penandatangan:'Kepala Desa', dokumen: null })"
             >
               Ajukan Surat Baru
             </button>
@@ -345,9 +378,64 @@ const steps = [
               </div>
             </div>
 
+            <div v-if="form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu'" class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 p-5 rounded-xl bg-green-50/50 border border-green-100">
+              <div class="col-span-1 sm:col-span-2">
+                <p class="text-sm font-bold text-green-800 mb-1">Data Program & Usaha</p>
+                <p class="text-xs text-green-600">Mohon lengkapi informasi program dan usaha Anda di bawah ini.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Nama Program/Kegiatan <span class="text-red-500">*</span></label>
+                <input v-model="form.nama_program" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Contoh: Program UMKM Desa">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Tahun Pelaksanaan <span class="text-red-500">*</span></label>
+                <input v-model="form.tahun_program" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Contoh: 2026">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Nama Usaha</label>
+                <input v-model="form.nama_usaha" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nama warung/toko/usaha">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Sektor Usaha</label>
+                <input v-model="form.sektor_usaha" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Contoh: Kuliner, Jasa, dll">
+              </div>
+              <div class="col-span-1 sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Nomor Kontak Usaha</label>
+                <input v-model="form.nomor_kontak" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nomor HP/Telepon yang bisa dihubungi">
+              </div>
+            </div>
+
+            <div v-if="form.jenis_surat === 'Surat Keterangan Usaha'" class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 p-5 rounded-xl bg-blue-50/50 border border-blue-100">
+              <div class="col-span-1 sm:col-span-2">
+                <p class="text-sm font-bold text-blue-800 mb-1">Informasi Detail Usaha</p>
+                <p class="text-xs text-blue-600">Mohon isi data usaha untuk keperluan Surat Keterangan Usaha.</p>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Bidang Usaha <span class="text-red-500">*</span></label>
+                <input v-model="form.bidang_usaha" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-blue-800/20 focus:border-blue-800 outline-none transition-all" placeholder="Contoh: Warung Sembako">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Lama Usaha <span class="text-red-500">*</span></label>
+                <input v-model="form.lama_usaha" type="text" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-blue-800/20 focus:border-blue-800 outline-none transition-all" placeholder="Contoh: 5 Tahun">
+              </div>
+              <div class="col-span-1 sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-2">Alamat Usaha <span class="text-red-500">*</span></label>
+                <textarea v-model="form.alamat_usaha" rows="2" class="w-full px-4 py-2 rounded-xl border border-border text-sm focus:ring-2 focus:ring-blue-800/20 focus:border-blue-800 outline-none transition-all resize-y" placeholder="Alamat lengkap lokasi usaha Anda"></textarea>
+              </div>
+            </div>
+
             <div class="mb-6">
               <label class="block text-sm font-semibold text-slate-700 mb-2">Keperluan <span class="text-red-500">*</span></label>
               <textarea v-model="form.keperluan" rows="4" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all resize-y" placeholder="Jelaskan keperluan pengajuan surat..."></textarea>
+            </div>
+
+            <div class="mb-6">
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Ditandatangani Oleh <span class="text-red-500">*</span></label>
+              <select v-model="form.penandatangan" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all appearance-none bg-white">
+                <option value="Kepala Desa">Kepala Desa</option>
+                <option value="Sekretaris Desa">Sekretaris Desa</option>
+              </select>
+              <p class="text-xs text-slate-500 mt-2">Pilih siapa yang akan menandatangani dokumen ini.</p>
             </div>
 
             <div class="mb-8">

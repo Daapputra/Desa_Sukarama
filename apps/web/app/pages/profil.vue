@@ -13,7 +13,7 @@ const tabs = [
 ]
 
 const aparatur = [
-  { nama: 'H. Ahmad Suryadi, S.Sos', jabatan: 'Kepala Desa', inisial: 'AS' },
+  { nama: 'Wahyu Komara', jabatan: 'Kepala Desa', inisial: 'WK' },
   { nama: 'Dedi Mulyadi, S.IP', jabatan: 'Sekretaris Desa', inisial: 'DM' },
   { nama: 'Euis Nurhayati, SE', jabatan: 'Kaur Keuangan', inisial: 'EN' },
   { nama: 'Asep Saepudin', jabatan: 'Kaur Umum', inisial: 'AS' },
@@ -78,40 +78,49 @@ const demografi = [
             Sejarah Desa Sukarama
           </h2>
           <div class="prose prose-slate max-w-none text-sm leading-7 space-y-4 text-slate-600">
-            <p>Desa Sukarama merupakan salah satu desa di Kecamatan Bojongpicung, Kabupaten Cianjur, Provinsi Jawa Barat. Nama "Sukarama" berasal dari bahasa Sunda yang berarti "suka keramaian", mencerminkan semangat gotong royong dan kebersamaan masyarakatnya.</p>
-            <p>Desa ini telah berdiri sejak zaman kolonial Belanda dan terus berkembang hingga saat ini. Dengan luas wilayah sekitar 385,5 hektar, Desa Sukarama terdiri dari 3 dusun, 4 RW, dan 12 RT yang dihuni oleh sekitar 4.523 jiwa penduduk.</p>
+            <p>Desa Sukarama di Kecamatan Bojongpicung, Cianjur, memiliki akar sejarah yang erat dengan masa Kerajaan Pajajaran. Wilayah ini dikenal sebagai tempat bersejarah karena pernah menjadi pusat atau lokasi Kerajaan Tanjung Singuru, yang jejaknya kini berada di Kampung Cisuru.</p>
             
-            <figure class="my-6">
+            <h3 class="text-base font-bold text-slate-800 mt-6 mb-2">Catatan dan peninggalan bersejarah di Desa Sukarama meliputi:</h3>
+            
+            <ul class="list-disc pl-5 space-y-3">
+              <li>
+                <strong class="text-slate-800">Kerajaan Tanjung Singuru:</strong> Menurut naskah Babad Cianjur, wilayah Kampung Cisuru (kini masuk kawasan Sukarama) merupakan tapak kerajaan kuno Tanjung Singuru. Kerajaan ini pernah menjadi sasaran gempuran pasukan gabungan Cirebon, Demak, dan Banten.
+              </li>
+              <li>
+                <strong class="text-slate-800">Jembatan Cai dan Irigasi Peninggalan Belanda:</strong> Daerah ini terkenal dengan bangunan irigasi kolonial yang mulai beroperasi pada tahun 1897. Infrastruktur ini sangat vital untuk pertanian dan kini menjadi daya tarik wisata sejarah di Bojongpicung.
+              </li>
+            </ul>
+
+            <figure class="my-8">
               <img src="/images/sejarah-jembatan.jpg" alt="Irigasi di Tjihea Vlakte tahun 1917" class="w-full rounded-2xl shadow-md border border-border" />
-              <figcaption class="text-center text-xs text-slate-500 mt-2 italic">
-                Irigasi di Tjihea Vlakte tahun 1917 (Dok: Nationaal Museum van Wereldculturen - TropenMuseum Belanda)
+              <figcaption class="text-center text-xs text-slate-500 mt-3 italic">
+                Ilustrasi Irigasi Kolonial Peninggalan Belanda
               </figcaption>
             </figure>
-
-            <p>Mayoritas penduduk bermata pencaharian sebagai petani, dengan komoditas utama padi, palawija, dan tanaman perkebunan. Selain pertanian, UMKM juga menjadi penopang ekonomi masyarakat dengan berbagai produk unggulan seperti kerajinan anyaman bambu dan makanan khas tradisional.</p>
           </div>
         </div>
 
         <!-- Visi Misi -->
         <div v-if="activeTab === 'visimisi'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-white rounded-2xl border border-border p-8">
+          <div class="bg-white rounded-2xl border border-border p-8 flex flex-col">
             <h3 class="text-lg font-bold text-green-800 flex items-center gap-2 mb-4">
               <Eye class="w-5 h-5" /> Visi
             </h3>
-            <p class="text-sm text-slate-600 leading-7 italic">
-              "Terwujudnya Desa Sukarama yang Maju, Mandiri, dan Sejahtera berbasis Pertanian dan Kearifan Lokal"
-            </p>
+            <div class="bg-green-50/50 rounded-xl p-5 border border-green-100 flex-1 flex items-center justify-center">
+              <p class="text-sm md:text-base text-green-900 leading-relaxed font-semibold text-center uppercase tracking-wide">
+                "Mewujudkan Pembangunan Kawasan Perdesaan Berbasis Pertanian, Wisata, Budaya dan Potensi Lokal Untuk Mempercepat Pertumbuhan Serta Pemerataan Ekonomi Rakyat"
+              </p>
+            </div>
           </div>
           <div class="bg-white rounded-2xl border border-border p-8">
             <h3 class="text-lg font-bold text-green-800 flex items-center gap-2 mb-4">
               <Target class="w-5 h-5" /> Misi
             </h3>
-            <ol class="space-y-2 text-sm text-slate-600 leading-7 list-decimal pl-5">
-              <li>Meningkatkan kualitas pelayanan publik yang transparan dan akuntabel</li>
-              <li>Mengembangkan potensi pertanian dan UMKM untuk meningkatkan ekonomi masyarakat</li>
-              <li>Meningkatkan kualitas sumber daya manusia melalui pendidikan dan pelatihan</li>
-              <li>Membangun infrastruktur desa yang memadai dan berkelanjutan</li>
-              <li>Melestarikan nilai-nilai budaya dan kearifan lokal Sunda</li>
+            <ol class="space-y-4 text-sm text-slate-600 leading-relaxed list-decimal pl-5 marker:text-green-700 marker:font-bold">
+              <li class="pl-2">Memberikan peluang seluas-luasnya kepada Aparatur Pemerintahan Desa dan Lembaga Pemerintahan Desa serta Masyarakat untuk meningkatkan kapasitas diri dan masyarakat.</li>
+              <li class="pl-2">Meningkatkan Sumber Daya Manusia dan Partisipasi Masyarakat dalam Pembangunan.</li>
+              <li class="pl-2">Mengembangkan Usaha Ekonomi Produktif melalui pembangunan yang berpihak pada ekonomi kerakyatan.</li>
+              <li class="pl-2">Meningkatkan Pemanfaatan Sumber Daya Alam Melalui Teknologi dan Inovasi.</li>
             </ol>
           </div>
         </div>

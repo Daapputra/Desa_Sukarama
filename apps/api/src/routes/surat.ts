@@ -62,7 +62,12 @@ export async function suratRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { nama, nik, no_kk, jenis_surat, keperluan, no_wa, nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat } = fields
+    const { 
+      nama, nik, no_kk, jenis_surat, keperluan, no_wa, 
+      nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat,
+      nama_program, tahun_program, nama_usaha, sektor_usaha, nomor_kontak,
+      bidang_usaha, alamat_usaha, lama_usaha, penandatangan
+    } = fields
 
     if (!nama || !nik || !no_kk || !jenis_surat || !keperluan || !no_wa) {
       return reply.status(400).send({ error: 'Semua field wajib harus diisi' })
@@ -105,7 +110,19 @@ export async function suratRoutes(fastify: FastifyInstance) {
       keperluan,
       noWa: no_wa,
       dokumenPath,
-      metadata: { namaKk: nama_kk || '', namaKtp: nama_ktp || '' }
+      metadata: { 
+        namaKk: nama_kk || '', 
+        namaKtp: nama_ktp || '',
+        namaProgram: nama_program || '',
+        tahunProgram: tahun_program || '',
+        namaUsaha: nama_usaha || '',
+        sektorUsaha: sektor_usaha || '',
+        nomorKontak: nomor_kontak || '',
+        bidangUsaha: bidang_usaha || '',
+        alamatUsaha: alamat_usaha || '',
+        lamaUsaha: lama_usaha || '',
+        penandatangan: penandatangan || 'Kepala Desa'
+      } as any
     })
 
     return reply.status(201).send({ ref_number: refNumber, message: 'Pengajuan surat berhasil dikirim' })
@@ -266,6 +283,10 @@ export async function suratRoutes(fastify: FastifyInstance) {
       templateName = 'Surat_Domisili.docx'
     } else if (surat.jenisSurat.toLowerCase().includes('beda nama')) {
       templateName = 'Surat_Beda_Nama.docx'
+    } else if (surat.jenisSurat.toLowerCase().includes('pernyataan kesediaan')) {
+      templateName = 'Surat Pernyataan Kesediaan Mengikuti Program.docx'
+    } else if (surat.jenisSurat.toLowerCase().includes('usaha')) {
+      templateName = 'SKU.docx'
     } else {
       // Default fallback jika tidak match
       templateName = 'Surat_Domisili.docx'
@@ -286,7 +307,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
           return fs.readFileSync(tagValue)
         },
         getSize() {
-          return [150, 150] // Width and height of the signature
+          return [200, 110] // Width and height of the signature
         }
       }
       const imageModule = new ImageModule(opts)
@@ -306,9 +327,6 @@ export async function suratRoutes(fastify: FastifyInstance) {
         }
       })
 
-      const ttdPath = path.resolve('../../uploads/ttd_sekdes.png')
-      
-      // Parse metadata untuk namaKk dan namaKtp
       let metadata: any = {}
       if (typeof surat.metadata === 'string') {
         try { metadata = JSON.parse(surat.metadata) } catch(e){}
@@ -316,32 +334,118 @@ export async function suratRoutes(fastify: FastifyInstance) {
         metadata = surat.metadata
       }
 
+      const penandatangan = metadata?.penandatangan || 'Kepala Desa';
+      const ttdFileName = penandatangan === 'Sekretaris Desa' ? 'ttd_sekdes.png' : 'ttd kades.png';
+      const ttdPath = path.resolve(`../web/public/templates/${ttdFileName}`);
+      
+
+      const namaPemohon = warga?.namaLengkap || surat.nama;
+      let formattedTanggalLahir = warga?.tanggalLahir || '-';
+      if (warga?.tanggalLahir) {
+        try {
+          const tgl = new Date(warga.tanggalLahir);
+          if (!isNaN(tgl.getTime())) {
+            formattedTanggalLahir = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          }
+        } catch(e) {}
+      }
+      const tempatTglLahir = `${warga?.tempatLahir || '-'}, ${formattedTanggalLahir}`;
+      
+      const now = new Date()
+      const tglSurat = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      
+      const berlakuDate = new Date(now)
+      berlakuDate.setMonth(berlakuDate.getMonth() + 3) // Berlaku 3 bulan otomatis
+      const tglBerlaku = berlakuDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
       // Render dokumen dengan data
       doc.render({
-        nama: warga?.namaLengkap || surat.nama,
+        nama: namaPemohon,
+        NAMA: namaPemohon,
         nik: surat.nik,
+        NIK: surat.nik,
         noKk: surat.noKk,
+        NO_KK: surat.noKk,
         keperluan: surat.keperluan,
+        KEPERLUAN: surat.keperluan,
         tempatLahir: warga?.tempatLahir || '',
         tanggalLahir: warga?.tanggalLahir || '',
+        tempat_tanggal_lahir: tempatTglLahir,
+        TEMPAT_TANGGAL_LAHIR: tempatTglLahir,
+        tempatTanggalLahir: tempatTglLahir,
         jenisKelamin: warga?.jenisKelamin || '',
+        JENIS_KELAMIN: warga?.jenisKelamin || '',
         statusPerkawinan: warga?.statusPerkawinan || '',
+        STATUS_PERKAWINAN: warga?.statusPerkawinan || '',
         agama: warga?.agama || '',
+        AGAMA: warga?.agama || '',
         pekerjaan: warga?.jenisPekerjaan || '',
+        PEKERJAAN: warga?.jenisPekerjaan || '',
         alamat: warga?.alamat || '',
+        ALAMAT: warga?.alamat || '',
         rt: warga?.rt || '',
         rw: warga?.rw || '',
-        tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        tanggal: tglSurat,
+        tanggal_surat: tglSurat,
+        TANGGAL_SURAT: tglSurat,
+        
         namaKk: metadata?.namaKk || '',
         namaKtp: metadata?.namaKtp || '',
         tempatLahirKk: warga?.tempatLahir || '',
         tanggalLahirKk: warga?.tanggalLahir || '',
-        namaPejabat: 'WAWAN SAEPUDIN',
-        NamaPejabat: 'WAWAN SAEPUDIN',
-        jabatan: 'Sekretaris Desa',
-        Jabatan: 'Sekretaris Desa',
-        jabatanPejabat: 'Sekretaris Desa',
-        JabatanPejabat: 'Sekretaris Desa',
+
+        nama_program: metadata?.namaProgram || '',
+        NAMA_PROGRAM: metadata?.namaProgram || '',
+        namaProgram: metadata?.namaProgram || '',
+        
+        tahun_program: metadata?.tahunProgram || '',
+        TAHUN_PROGRAM: metadata?.tahunProgram || '',
+        tahunProgram: metadata?.tahunProgram || '',
+
+        nama_usaha: metadata?.namaUsaha || '',
+        NAMA_USAHA: metadata?.namaUsaha || '',
+        namaUsaha: metadata?.namaUsaha || '',
+
+        sektor_usaha: metadata?.sektorUsaha || '',
+        SEKTOR_USAHA: metadata?.sektorUsaha || '',
+        sektorUsaha: metadata?.sektorUsaha || '',
+
+        nomor_kontak: metadata?.nomorKontak || '',
+        NOMOR_KONTAK: metadata?.nomorKontak || '',
+        nomorKontak: metadata?.nomorKontak || '',
+
+        bidang_usaha: metadata?.bidangUsaha || '',
+        BIDANG_USAHA: metadata?.bidangUsaha || '',
+        bidangUsaha: metadata?.bidangUsaha || '',
+
+        alamat_usaha: metadata?.alamatUsaha || '',
+        ALAMAT_USAHA: metadata?.alamatUsaha || '',
+        alamatUsaha: metadata?.alamatUsaha || '',
+
+        lama_usaha: metadata?.lamaUsaha || '',
+        LAMA_USAHA: metadata?.lamaUsaha || '',
+        lamaUsaha: metadata?.lamaUsaha || '',
+        
+        tanggal_berlaku: tglBerlaku,
+        TANGGAL_BERLAKU: tglBerlaku,
+        tanggalBerlaku: tglBerlaku,
+        nomor_surat: (request.query as any).nomor_surat || surat.refNumber,
+        NOMOR_SURAT: (request.query as any).nomor_surat || surat.refNumber,
+
+        jabatan_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        nama_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        NAMA_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        nipd: '',
+        NIPD: '',
+
+        namaPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        NamaPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        NAMA_KEPALA_DESA: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        jabatan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        Jabatan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        jabatanPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        JabatanPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
         ttd: fs.existsSync(ttdPath) ? ttdPath : null
       })
 
@@ -350,9 +454,12 @@ export async function suratRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `attachment; filename="${surat.jenisSurat}_${surat.nama}.docx"`)
       reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
       return reply.send(buf)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating document:', error)
-      return reply.status(500).send({ error: 'Gagal membuat dokumen surat' })
+      const details = error.properties && error.properties.errors 
+        ? error.properties.errors.map((e: any) => e.message).join(', ') 
+        : error.message;
+      return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details, stack: error.stack })
     }
   })
 }

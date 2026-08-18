@@ -149,6 +149,17 @@ function handleFotoChange(e: Event) {
   const input = e.target as HTMLInputElement
   if (input.files?.[0]) modalData.value.fotoFile = input.files[0]
 }
+
+function downloadSurat(id: number) {
+  const nomor = window.prompt('Masukkan Nomor Surat Resmi (kosongkan jika ingin memakai nomor referensi bawaan):')
+  if (nomor === null) return // Canceled
+
+  const url = new URL(`http://localhost:3005/api/surat/${id}/download-surat`)
+  if (nomor.trim()) {
+    url.searchParams.set('nomor_surat', nomor.trim())
+  }
+  window.open(url.toString(), '_blank')
+}
 </script>
 
 <template>
@@ -248,15 +259,14 @@ function handleFotoChange(e: Event) {
                       <button class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600" @click="openDetailModal('surat', s)">
                         <Eye class="w-4 h-4" />
                       </button>
-                      <a
+                      <button
                         v-if="s.status === 'Selesai'"
-                        :href="`http://localhost:3005/api/surat/${s.id}/download-surat`"
-                        target="_blank"
+                        @click="downloadSurat(s.id)"
                         title="Download Dokumen"
                         class="p-1.5 rounded-lg hover:bg-green-100 text-green-600"
                       >
                         <Printer class="w-4 h-4" />
-                      </a>
+                      </button>
                     </div>
                   </td>
                 </tr>

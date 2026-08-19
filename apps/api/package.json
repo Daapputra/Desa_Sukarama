@@ -7,10 +7,12 @@
     "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc",
     "start": "node --env-file=.env dist/server.js",
+    "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env src/db/seed.ts",
-    "import:penduduk": "tsx --env-file=.env import-penduduk.ts"
+    "import:penduduk": "tsx --env-file=.env scripts/import-penduduk.ts",
+    "reset:admin": "tsx --env-file=.env scripts/reset-admin.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",

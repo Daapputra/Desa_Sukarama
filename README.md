@@ -67,6 +67,31 @@ Desa_Sukarama/
 
 ---
 
+## ☀️ Rutinitas Harian (Daily Workflow)
+
+Jika Anda sudah pernah melakukan instalasi awal (Quick Start di bawah), berikut adalah langkah-langkah super singkat yang cukup Anda lakukan **setiap hari** saat mulai bekerja:
+
+### 🌞 Pagi / Saat Mulai Bekerja
+1. Buka Terminal dan masuk ke folder `Desa_Sukarama`.
+2. Nyalakan seluruh sistem dengan perintah:
+   ```bash
+   docker compose start
+   ```
+3. Sistem Anda sudah aktif! Silakan buka browser:
+   * 🌐 **Website & Admin:** [http://localhost:3000](http://localhost:3000)
+   * 🗄️ **Database GUI (Pgweb):** [http://localhost:8081](http://localhost:8081)
+
+### 🌙 Sore / Saat Selesai Bekerja
+Agar RAM laptop Anda tidak terbebani saat tidak bekerja, matikan sistem dengan cara:
+1. Buka Terminal di folder `Desa_Sukarama`.
+2. Matikan sistem sementara dengan perintah:
+   ```bash
+   docker compose stop
+   ```
+*(Tips: Gunakan `stop` & `start` untuk rutinitas harian. Jangan gunakan `down` kecuali Anda ingin membongkar ulang aplikasi).*
+
+---
+
 ## 🚀 Panduan Mulai Cepat (Quick Start)
 
 Panduan ini ditujukan bagi anggota tim atau developer baru untuk menjalankan aplikasi dari nol hingga siap digunakan, lengkap beserta datanya.

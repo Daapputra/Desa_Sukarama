@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env src/db/seed.ts",
+    "db:studio": "drizzle-kit studio",
     "import:penduduk": "tsx --env-file=.env scripts/import-penduduk.ts",
     "reset:admin": "tsx --env-file=.env scripts/reset-admin.ts"
   },

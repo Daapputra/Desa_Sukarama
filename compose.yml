@@ -60,6 +60,19 @@ services:
     ports:
       - "3000:3000"
 
+  # ── Database GUI (Pgweb) ──────────────────────────────────
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: sukarama_pgweb
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-rahasia}@db:5432/${POSTGRES_DB:-desasukarama}?sslmode=disable
+    ports:
+      - "8081:8081"
+
 volumes:
   postgres_data:
     name: sukarama_postgres_data

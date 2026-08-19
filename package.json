@@ -16,7 +16,8 @@
     "typecheck": "npm --prefix apps/api run build && npm --prefix apps/web run typecheck",
     "import:penduduk": "npm --prefix apps/api run import:penduduk",
     "db:push": "npm --prefix apps/api run db:push",
-    "db:seed": "npm --prefix apps/api run db:seed"
+    "db:seed": "npm --prefix apps/api run db:seed",
+    "db:studio": "npm --prefix apps/api run db:studio"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

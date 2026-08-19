@@ -114,6 +114,11 @@ Setelah semua langkah di atas selesai, sistem sudah siap digunakan sepenuhnya:
 * ⚙️ **Backend API Health:** [http://localhost:3005/api/health](http://localhost:3005/api/health)
 * 🔐 **Login Admin:** [http://localhost:3000/admin](http://localhost:3000/admin) *(Username: `admin`, Password: `admin123`)*
 
+### 6. Akses Database GUI (Built-in)
+Tidak perlu menginstall DBeaver atau pgAdmin. Proyek ini sudah terintegrasi dengan GUI Database **Pgweb** di dalam Docker:
+* 🗄️ **Database Manager:** [http://localhost:8081](http://localhost:8081)
+* Anda bisa langsung melihat tabel, mengedit isi database, melihat log 6.000+ data NIK, atau menjalankan query SQL langsung dari browser!
+
 ---
 
 ## 🛠️ Manajemen Aplikasi (Start / Stop)

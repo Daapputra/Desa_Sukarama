@@ -76,9 +76,10 @@ Cukup **satu perintah** untuk menjalankan seluruh stack (*PostgreSQL*, *Fastify 
 cp .env.example .env
 ```
 
-### 2. Jalankan Full-Stack Container
+### 2. Jalankan Full-Stack Container (Background Mode)
+Sangat direkomendasikan menjalankan dalam mode *detached* (background) agar terminal bisa tetap digunakan:
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 Setelah container berjalan:
@@ -86,15 +87,37 @@ Setelah container berjalan:
 * ⚙️ **Backend API Health:** [http://localhost:3005/api/health](http://localhost:3005/api/health)
 * 🔐 **Login Admin:** [http://localhost:3000/admin](http://localhost:3000/admin) *(Username: `admin`, Password: `admin123`)*
 
-### Menghentikan Container
+### 🔍 Melihat Log Aplikasi (Realtime)
+Jika dijalankan dalam mode background (`-d`), Anda bisa melihat log aplikasi kapan saja:
+```bash
+# Melihat log semua aplikasi (Web, API, DB)
+docker compose logs -f
+
+# Melihat log API saja
+docker compose logs -f api
+```
+
+### ⏸️ Mematikan & Menyalakan (Shortcut Cepat)
+Jika Anda hanya ingin mematikan *sementara* dan menyalakannya lagi (tanpa menghapus container):
+```bash
+# Mematikan sementara
+docker compose stop
+
+# Menyalakan kembali
+docker compose start
+```
+
+### 🛑 Mematikan & Menghapus Container
+Jika Anda ingin mematikan dan membersihkan resources container (data database akan tetap aman):
 ```bash
 docker compose down
 ```
 
 > [!NOTE]
-> Data PostgreSQL tersimpan secara aman di Docker Named Volume (`sukarama_postgres_data`). Data tidak akan hilang saat container dimatikan (`docker compose down`).
+> Data PostgreSQL tersimpan secara aman di Docker Named Volume (`sukarama_postgres_data`). Data tidak akan hilang saat container dihancurkan.
 
-### Menghapus Data Database (Reset Total)
+### 🗑️ Menghapus Data Database (Reset Total)
+Jika Anda ingin mereset/menghapus seluruh data di database secara permanen:
 ```bash
 docker compose down -v
 ```

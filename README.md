@@ -67,57 +67,89 @@ Desa_Sukarama/
 
 ---
 
-## ⚡ Cara Menjalankan dengan Docker Compose (Rekomendasi)
+## 🚀 Panduan Mulai Cepat (Quick Start)
 
-Cukup **satu perintah** untuk menjalankan seluruh stack (*PostgreSQL*, *Fastify API*, dan *Nuxt Web*):
+Panduan ini ditujukan bagi anggota tim atau developer baru untuk menjalankan aplikasi dari nol hingga siap digunakan, lengkap beserta datanya.
 
-### 1. Salin Environment
+### 1. Clone Repository
+Langkah pertama, clone repository ini ke mesin lokal Anda:
+```bash
+git clone https://github.com/Daapputra/Desa_Sukarama.git
+cd Desa_Sukarama
+```
+
+### 2. Siapkan Environment Variables
+Salin file template environment bawaan:
 ```bash
 cp .env.example .env
 ```
+*(Anda dapat mengubah isi `.env` nantinya jika butuh password database atau port khusus).*
 
-### 2. Jalankan Full-Stack Container (Background Mode)
-Sangat direkomendasikan menjalankan dalam mode *detached* (background) agar terminal bisa tetap digunakan:
+### 3. Nyalakan Aplikasi (via Docker)
+Sangat direkomendasikan menjalankan aplikasi dalam mode *detached* (background) via Docker Compose. Perintah ini akan mengunduh, mem-build, dan menjalankan Database, API, serta Web sekaligus:
 ```bash
 docker compose up --build -d
 ```
+Tunggu beberapa saat hingga seluruh proses build selesai.
 
-Setelah container berjalan:
+### 4. Instalasi Dependensi & Import Data (NIK)
+Agar aplikasi memiliki data admin dan data riil penduduk (dari file Excel), Anda perlu melakukan *seeding*. Pastikan **Node.js** terinstal di laptop Anda, lalu jalankan:
+```bash
+# Instal seluruh dependensi project (NPM Workspaces)
+npm install
+
+# (Opsional) Push skema database terbaru jika ada perubahan struktur
+npm run db:push
+
+# Masukkan data dummy dasar dan akun Administrator
+npm run db:seed
+
+# Import ribuan data riil penduduk (Data NIK) dari file Excel
+npm run import:penduduk
+```
+
+### 5. Akses Aplikasi
+Setelah semua langkah di atas selesai, sistem sudah siap digunakan sepenuhnya:
 * 🌐 **Frontend Web:** [http://localhost:3000](http://localhost:3000)
 * ⚙️ **Backend API Health:** [http://localhost:3005/api/health](http://localhost:3005/api/health)
 * 🔐 **Login Admin:** [http://localhost:3000/admin](http://localhost:3000/admin) *(Username: `admin`, Password: `admin123`)*
 
+---
+
+## 🛠️ Manajemen Aplikasi (Start / Stop)
+
+Sebagai developer, Anda harus tahu cara mematikan, menyalakan, dan mereset aplikasi Docker ini.
+
 ### 🔍 Melihat Log Aplikasi (Realtime)
-Jika dijalankan dalam mode background (`-d`), Anda bisa melihat log aplikasi kapan saja:
+Untuk melihat aktivitas atau mencari tahu jika ada error:
 ```bash
-# Melihat log semua aplikasi (Web, API, DB)
+# Log seluruh sistem
 docker compose logs -f
 
-# Melihat log API saja
+# Log khusus backend API saja
 docker compose logs -f api
 ```
 
-### ⏸️ Mematikan & Menyalakan (Shortcut Cepat)
-Jika Anda hanya ingin mematikan *sementara* dan menyalakannya lagi (tanpa menghapus container):
+### ⏸️ Pause & Resume (Shortcut Cepat)
+Jika Anda ingin mematikan aplikasi sementara (misal: mematikan laptop) tanpa menghapus *container*:
 ```bash
 # Mematikan sementara
 docker compose stop
 
-# Menyalakan kembali
+# Menyalakan kembali (sangat cepat, tanpa build ulang)
 docker compose start
 ```
 
 ### 🛑 Mematikan & Menghapus Container
-Jika Anda ingin mematikan dan membersihkan resources container (data database akan tetap aman):
+Jika Anda ingin mematikan aplikasi sepenuhnya dan membersihkan *resources* komputer Anda:
 ```bash
 docker compose down
 ```
+> [!NOTE]  
+> Jangan khawatir, **Data PostgreSQL (NIK, dll) tersimpan sangat aman** di Named Volume (`sukarama_postgres_data`). Data tidak akan terhapus saat Anda menjalankan perintah `down`.
 
-> [!NOTE]
-> Data PostgreSQL tersimpan secara aman di Docker Named Volume (`sukarama_postgres_data`). Data tidak akan hilang saat container dihancurkan.
-
-### 🗑️ Menghapus Data Database (Reset Total)
-Jika Anda ingin mereset/menghapus seluruh data di database secara permanen:
+### 🗑️ Reset Data Total (Factory Reset)
+Gunakan perintah ini **hanya** jika Anda ingin menghapus sistem secara total, termasuk menghancurkan seluruh data NIK dan database permanen:
 ```bash
 docker compose down -v
 ```

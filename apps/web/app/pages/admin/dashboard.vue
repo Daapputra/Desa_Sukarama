@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
-  FileText, ShoppingBag, Newspaper, MessageSquare, LogOut, ChevronDown,
-  Plus, Pencil, Trash2, Eye, AlertCircle, CheckCircle, X, Printer
+  FileText, ShoppingBag, Newspaper, MessageSquare, LogOut,
+  Plus, Pencil, Trash2, Eye, AlertCircle, X, Printer
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })

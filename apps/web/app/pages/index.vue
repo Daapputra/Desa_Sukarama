@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
-  ArrowRight, FileText, ShoppingBag, Users, Home, Map, Ruler, Info,
-  ShieldCheck, User, Calendar, MessageCircle, Newspaper, ChevronRight,
-  Sparkles, CheckCircle2, Building2, Search, HeartHandshake, PhoneCall
+  ArrowRight, FileText, ShoppingBag, Users, Home, Map, Ruler,
+  ShieldCheck, User, Calendar, MessageCircle, ChevronRight,
+  Building2, Search, HeartHandshake
 } from 'lucide-vue-next'
 import { formatTanggal, formatRupiah } from '~/utils/format'
 
@@ -81,6 +81,7 @@ function getWhatsappUrl(p: any): string {
           src="/images/hero-banner1.jpeg"
           alt="Pemandangan Desa Sukarama"
           class="w-full h-full object-cover opacity-90 scale-105 animate-[heroBgZoom_20s_ease-out_forwards]"
+          decoding="async"
         />
       </div>
       <div class="absolute inset-0 z-10 bg-gradient-to-tr from-slate-950 via-slate-950/75 to-emerald-950/50"></div>
@@ -221,8 +222,9 @@ function getWhatsappUrl(p: any): string {
                 Bukti domisili resmi tempat tinggal di wilayah Sukarama untuk berbagai keperluan administrasi.
               </p>
             </div>
-            <div class="mt-6 flex items-center text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
-              <span>Ajukan Sekarang →</span>
+            <div class="mt-6 flex items-center gap-1 text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
+              <span>Ajukan Sekarang</span>
+              <ArrowRight class="w-3.5 h-3.5" />
             </div>
           </NuxtLink>
 
@@ -241,8 +243,9 @@ function getWhatsappUrl(p: any): string {
                 Legalitas keterangan usaha warga desa untuk pengajuan modal usaha, izin, atau persyaratan bank.
               </p>
             </div>
-            <div class="mt-6 flex items-center text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
-              <span>Ajukan Sekarang →</span>
+            <div class="mt-6 flex items-center gap-1 text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
+              <span>Ajukan Sekarang</span>
+              <ArrowRight class="w-3.5 h-3.5" />
             </div>
           </NuxtLink>
 
@@ -261,8 +264,9 @@ function getWhatsappUrl(p: any): string {
                 Klarifikasi resmi perbedaan ejaan nama antara Kartu Keluarga dan KTP/Ijazah warga.
               </p>
             </div>
-            <div class="mt-6 flex items-center text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
-              <span>Ajukan Sekarang →</span>
+            <div class="mt-6 flex items-center gap-1 text-xs font-bold text-emerald-800 group-hover:translate-x-1 transition-transform">
+              <span>Ajukan Sekarang</span>
+              <ArrowRight class="w-3.5 h-3.5" />
             </div>
           </NuxtLink>
 
@@ -278,11 +282,12 @@ function getWhatsappUrl(p: any): string {
                 Lacak Pengajuan Surat
               </h3>
               <p class="text-xs text-emerald-200/80 leading-relaxed">
-                Cukup ketik NIK untuk melihat status persetujuan surat dan langsung mengunduh file `.docx`.
+                Cukup ketik NIK untuk melihat status persetujuan surat dan langsung mengunduh file dokumen resmi.
               </p>
             </div>
-            <div class="mt-6 flex items-center text-xs font-bold text-emerald-300 group-hover:translate-x-1 transition-transform">
-              <span>Cek Status NIK →</span>
+            <div class="mt-6 flex items-center gap-1 text-xs font-bold text-emerald-300 group-hover:translate-x-1 transition-transform">
+              <span>Cek Status NIK</span>
+              <ArrowRight class="w-3.5 h-3.5" />
             </div>
           </NuxtLink>
         </div>
@@ -362,6 +367,8 @@ function getWhatsappUrl(p: any): string {
                 :src="getProductImg(p)"
                 :alt="p.nama_produk || p.namaProduk"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+                decoding="async"
                 @error="handleImageError"
               />
               <span class="absolute top-3 right-3 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-md text-emerald-900">
@@ -384,6 +391,7 @@ function getWhatsappUrl(p: any): string {
                 <a
                   :href="getWhatsappUrl(p)"
                   target="_blank"
+                  rel="noopener noreferrer"
                   class="p-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold transition-colors"
                   title="Pesan via WhatsApp"
                 >
@@ -419,6 +427,7 @@ function getWhatsappUrl(p: any): string {
             <a
               href="https://wa.me/6281234567890?text=Halo%20Admin%20Desa%20Sukarama"
               target="_blank"
+              rel="noopener noreferrer"
               class="px-8 py-3.5 rounded-full border border-emerald-400/50 hover:bg-white/10 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2"
             >
               <MessageCircle class="w-4 h-4" />

@@ -94,6 +94,7 @@ const contactInfo = [
               <a
                 href="https://wa.me/6281234567890?text=Halo%20Admin%20Desa%20Sukarama,%20saya%20ingin%20bertanya%20mengenai%20layanan%20desa..."
                 target="_blank"
+                rel="noopener noreferrer"
                 class="w-full py-3 rounded-2xl bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/20 transition-all"
               >
                 <MessageCircle class="w-4 h-4" />

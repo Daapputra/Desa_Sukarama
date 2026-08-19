@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-vue-next'
+import { Lock, User, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })
 useHead({ title: 'Login Admin — Desa Sukarama' })
@@ -93,8 +93,9 @@ async function handleLogin() {
         </form>
 
         <div class="mt-6 text-center">
-          <NuxtLink to="/" class="text-xs text-muted-foreground hover:text-green-800 transition-colors">
-            ← Kembali ke Website
+          <NuxtLink to="/" class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-emerald-800 transition-colors">
+            <ArrowLeft class="w-3.5 h-3.5" />
+            <span>Kembali ke Website</span>
           </NuxtLink>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Eye, Target, BookOpen, Users, MapPin, ChevronRight, Landmark, ShieldCheck, HeartHandshake } from 'lucide-vue-next'
+import { Eye, Target, BookOpen, Users, MapPin, ChevronRight, Landmark, ShieldCheck } from 'lucide-vue-next'
 
 useHead({
   title: 'Profil & Sejarah — Desa Sukarama',
@@ -119,6 +119,8 @@ const demografi = [
                   src="/images/sejarah-jembatan.jpg"
                   alt="Irigasi Kolonial Tjihea Vlakte 1917"
                   class="w-full rounded-2xl shadow-md border border-slate-200"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <figcaption class="text-center text-xs text-slate-500 mt-2.5 italic">
                   Dokumentasi Saluran Irigasi Kolonial Belanda di kawasan Bojongpicung (Arsip Bersejarah)

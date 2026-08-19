@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import {
   ChevronRight, Search, FileText, CheckCircle2, AlertCircle, Loader2, Download,
-  Upload, Clock, HelpCircle, UserCheck, ShieldCheck, ArrowRight, Building2,
-  FileCheck2, Sparkles, RefreshCw, FileQuestion
+  Upload, UserCheck, ShieldCheck, Building2, FileCheck2, Sparkles, FileQuestion, Check
 } from 'lucide-vue-next'
 import { formatTanggal, getStatusColor } from '~/utils/format'
 
@@ -435,7 +434,8 @@ const steps = [
                 </div>
                 <div>
                   <div class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
-                    <span>✓ Terverifikasi di Master Data</span>
+                    <Check class="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Terverifikasi di Master Data</span>
                   </div>
                   <p class="text-xs text-emerald-950 font-bold">
                     {{ residentDetail.namaLengkap }} &bull; KK: {{ residentDetail.noKk }}
@@ -744,7 +744,7 @@ const steps = [
                         class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors"
                         :class="surat.status === 'Selesai' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-200 text-slate-500'"
                       >
-                        ✓
+                        <Check class="w-3.5 h-3.5" />
                       </div>
                       <span class="text-[10px] font-semibold text-slate-600 mt-1">Selesai</span>
                     </div>

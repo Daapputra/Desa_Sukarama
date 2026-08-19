@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPin, Phone, Clock, Mail, Shield, MessageCircle, ExternalLink, Heart } from 'lucide-vue-next'
+import { MapPin, Phone, Clock, Shield, MessageCircle, Search } from 'lucide-vue-next'
 
 const year = new Date().getFullYear()
 </script>
@@ -24,6 +24,7 @@ const year = new Date().getFullYear()
             <a
               href="https://wa.me/6281234567890?text=Halo%20Admin%20Desa%20Sukarama"
               target="_blank"
+              rel="noopener noreferrer"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-semibold border border-emerald-700/50 transition-colors"
             >
               <MessageCircle class="w-3.5 h-3.5 text-emerald-400" />
@@ -56,7 +57,12 @@ const year = new Date().getFullYear()
             <li><NuxtLink to="/layanan" class="text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"><span>›</span> Surat Beda Nama (KK/KTP)</NuxtLink></li>
             <li><NuxtLink to="/layanan" class="text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"><span>›</span> Surat Keterangan Usaha (SKU)</NuxtLink></li>
             <li><NuxtLink to="/layanan" class="text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5"><span>›</span> Surat Pernyataan Program</NuxtLink></li>
-            <li><NuxtLink to="/layanan?tab=cek" class="text-emerald-400 font-semibold hover:underline flex items-center gap-1.5"><span>🔍</span> Lacak Status Surat (Via NIK)</NuxtLink></li>
+            <li>
+              <NuxtLink to="/layanan?tab=cek" class="text-emerald-400 font-semibold hover:underline flex items-center gap-1.5">
+                <Search class="w-3 h-3 text-emerald-400" />
+                <span>Lacak Status Surat (Via NIK)</span>
+              </NuxtLink>
+            </li>
           </ul>
         </div>
 
@@ -91,9 +97,7 @@ const year = new Date().getFullYear()
       <!-- Bottom -->
       <div class="border-t border-slate-900 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
         <span>&copy; {{ year }} Pemerintah Desa Sukarama. Semua hak dilindungi.</span>
-        <span class="flex items-center gap-1">
-          Dikembangkan untuk masyarakat Desa Sukarama
-        </span>
+        <span>Dikembangkan untuk masyarakat Desa Sukarama</span>
       </div>
     </div>
   </footer>

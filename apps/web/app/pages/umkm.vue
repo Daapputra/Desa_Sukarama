@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
-  ShoppingBag, ChevronRight, ExternalLink, Search, MessageCircle,
-  Tag, Phone, User, Store, Sparkles, X, CheckCircle
+  ShoppingBag, ChevronRight, Search, MessageCircle,
+  User, Sparkles, X
 } from 'lucide-vue-next'
 import { formatRupiah } from '~/utils/format'
 
@@ -30,7 +30,7 @@ const produkLokal = [
   { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 45000, kategori: 'Kerajinan', deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6281234567896', fotoPath: '/images/products/doran-pacul.jpg' },
 ]
 
-const { data: dbProduk, pending } = useAsyncData('umkm-all', () =>
+const { data: dbProduk } = useAsyncData('umkm-all', () =>
   apiGet<any[]>('/api/umkm').catch(() => [])
 )
 

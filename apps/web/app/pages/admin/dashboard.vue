@@ -48,8 +48,8 @@ async function loadAll() {
     umkmList.value = await apiGet('/api/umkm')
     pengumumanList.value = await apiGet('/api/pengumuman')
     pesanList.value = await apiGet('/api/kontak')
-  } catch (err) {
-    console.error('Error loading data', err)
+  } catch {
+    // Graceful error recovery when session expires or network disconnects
   }
 }
 

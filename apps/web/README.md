@@ -1,75 +1,39 @@
-# Nuxt Minimal Starter
+# 🌿 Frontend Web Desa Sukarama
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Aplikasi web modern berbasis **Nuxt 4** dan **Tailwind CSS** untuk portal layanan publik, administrasi surat desa, dan katalog UMKM Desa Sukarama, Kecamatan Bojongpicung, Kabupaten Cianjur.
 
-## Setup
+---
 
-Make sure to install dependencies:
+## 📂 Struktur Direktori Standar
 
-```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+```
+apps/web/
+├── app/
+│   ├── assets/css/        # Desain tokens, tema warna & utility styles
+│   ├── components/        # Komponen UI (SiteHeader, SiteFooter)
+│   ├── composables/       # Logika API fetching (useApi) & auth (useAuth)
+│   ├── layouts/           # Layouts (default, admin)
+│   ├── pages/             # Routing halaman (index, layanan, umkm, profil, kontak, admin)
+│   ├── plugins/           # Nuxt plugins (animasi scroll)
+│   ├── utils/             # Format tanggal, Rupiah & string helpers
+│   └── app.vue            # Root template
+├── public/                # Asset publik (gambar, template surat docx)
+├── nuxt.config.ts         # Konfigurasi Nuxt 4, Nitro caching, SEO meta
+├── tailwind.config.ts     # Konfigurasi tema Tailwind CSS
+└── package.json           # Dependencies ringan & skrip build
 ```
 
-## Development Server
+---
 
-Start the development server on `http://localhost:3000`:
+## ⚡ Skrip Tersedia
 
 ```bash
-# npm
+# Menjalankan server development (Port 3000)
 npm run dev
 
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
+# Membangun bundle produksi teroptimasi
 npm run build
 
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
+# Menjalankan preview dari build produksi
 npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
 ```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

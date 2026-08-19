@@ -40,16 +40,19 @@ async function importPenduduk() {
   const sheetName = workbook.SheetNames[0]
   const worksheet = workbook.Sheets[sheetName]
   
-  const rawRows: any[] = xlsx.utils.sheet_to_json(worksheet)
+  const rawRows: any[][] = xlsx.utils.sheet_to_json(worksheet, { header: 1 })
   console.log(`📊 Total baris di Excel: ${rawRows.length}`)
 
   const validRecords: any[] = []
   const seenNiks = new Set<string>()
 
-  for (const row of rawRows) {
-    const nik = cleanString(row['NIK'])
-    const noKk = cleanString(row['NO_KK'])
-    const nama = cleanString(row['NAMA_LGKP'])
+  for (let i = 3; i < rawRows.length; i++) {
+    const row = rawRows[i]
+    if (!row || row.length === 0) continue
+
+    const nik = cleanString(row[3])
+    const noKk = cleanString(row[1])
+    const nama = cleanString(row[2])
 
     if (!nik || !nama || !noKk) continue
     if (seenNiks.has(nik)) continue
@@ -59,16 +62,16 @@ async function importPenduduk() {
       nik,
       noKk,
       namaLengkap: nama,
-      jenisKelamin: cleanString(row['JK']),
-      tempatLahir: cleanString(row['TMPT_LHR']),
-      tanggalLahir: cleanString(row['TGL_LHR']),
-      agama: cleanString(row['AGAMA']),
-      pendidikan: cleanString(row['PENDIDIKAN']),
-      jenisPekerjaan: cleanString(row['PEKERJAAN']),
-      statusPerkawinan: cleanString(row['STATUS_KAWIN']),
-      alamat: cleanString(row['ALAMAT']),
-      rt: cleanString(row['NO_RT']),
-      rw: cleanString(row['NO_RW']),
+      jenisKelamin: cleanString(row[4]),
+      tempatLahir: cleanString(row[5]),
+      tanggalLahir: cleanString(row[6]),
+      agama: cleanString(row[7]),
+      pendidikan: cleanString(row[8]),
+      jenisPekerjaan: cleanString(row[9]),
+      statusPerkawinan: cleanString(row[11]),
+      alamat: cleanString(row[20]),
+      rt: cleanString(row[21]),
+      rw: cleanString(row[22]),
     })
   }
 

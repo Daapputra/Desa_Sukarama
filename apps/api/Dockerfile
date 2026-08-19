@@ -31,6 +31,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/scripts ./scripts
 
+# Copy document templates from web
+COPY apps/web/public/templates ./apps/web/public/templates
+
 EXPOSE 3005
 
 CMD ["node", "dist/server.js"]

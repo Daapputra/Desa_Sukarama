@@ -84,8 +84,8 @@ export async function suratRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { 
-      nama, nik, no_kk, jenis_surat, keperluan, no_wa, 
+    const {
+      nama, nik, no_kk, jenis_surat, keperluan, no_wa,
       nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat,
       nama_program, tahun_program, nama_usaha, sektor_usaha, nomor_kontak,
       bidang_usaha, alamat_usaha, lama_usaha, penandatangan
@@ -118,7 +118,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
     if (pekerjaan) { insertData.jenisPekerjaan = pekerjaan; updateData.jenisPekerjaan = pekerjaan }
     if (alamat) { insertData.alamat = alamat; updateData.alamat = alamat }
 
-    await db.insert(penduduk).values(insertData).onConflictDoUpdate({ 
+    await db.insert(penduduk).values(insertData).onConflictDoUpdate({
       target: penduduk.nik,
       set: updateData
     })
@@ -132,8 +132,8 @@ export async function suratRoutes(fastify: FastifyInstance) {
       keperluan,
       noWa: no_wa,
       dokumenPath,
-      metadata: { 
-        namaKk: nama_kk || '', 
+      metadata: {
+        namaKk: nama_kk || '',
         namaKtp: nama_ktp || '',
         namaProgram: nama_program || '',
         tahunProgram: tahun_program || '',
@@ -153,7 +153,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
   // GET /api/surat/cek-penduduk/:nik (public)
   fastify.get('/api/surat/cek-penduduk/:nik', async (request, reply) => {
     const { nik } = request.params as { nik: string }
-    
+
     if (!/^\d{3,16}$/.test(nik)) {
       return reply.status(400).send({ error: 'NIK tidak valid' })
     }
@@ -170,14 +170,14 @@ export async function suratRoutes(fastify: FastifyInstance) {
     if (!warga) {
       return { found: false }
     }
-    
+
     return { found: true, namaLengkap: warga.namaLengkap, noKk: warga.noKk }
   })
 
   // GET /api/surat/cek/:nik (public)
   fastify.get('/api/surat/cek/:nik', async (request, reply) => {
     const { nik } = request.params as { nik: string }
-    
+
     if (!/^\d{3,16}$/.test(nik)) {
       return reply.status(400).send({ error: 'NIK tidak valid' })
     }
@@ -198,7 +198,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
     if (result.length === 0) {
       return reply.status(404).send({ error: 'Tidak ada surat yang ditemukan untuk NIK ini' })
     }
-    
+
     return result
   })
 
@@ -277,7 +277,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
   // GET /api/surat/:id/download-surat (public)
   fastify.get('/api/surat/:id/download-surat', async (request, reply) => {
     const { id } = request.params as { id: string }
-    
+
     const [surat] = await db
       .select()
       .from(suratPengajuan)
@@ -335,7 +335,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
     try {
       const content = getCachedTemplate(templatePath)
       const zip = new PizZip(content)
-      
+
       const opts = {
         centered: false,
         getImage(tagValue: string) {
@@ -364,7 +364,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
 
       let metadata: any = {}
       if (typeof surat.metadata === 'string') {
-        try { metadata = JSON.parse(surat.metadata) } catch(e){}
+        try { metadata = JSON.parse(surat.metadata) } catch (e) { }
       } else if (surat.metadata) {
         metadata = surat.metadata
       }
@@ -372,7 +372,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
       const penandatangan = metadata?.penandatangan || 'Kepala Desa';
       const ttdFileName = penandatangan === 'Sekretaris Desa' ? 'ttd_sekdes.png' : 'ttd kades.png';
       const ttdPath = findTemplatePath(ttdFileName);
-      
+
 
       const namaPemohon = warga?.namaLengkap || surat.nama;
       let formattedTanggalLahir = warga?.tanggalLahir || '-';
@@ -382,85 +382,90 @@ export async function suratRoutes(fastify: FastifyInstance) {
           if (!isNaN(tgl.getTime())) {
             formattedTanggalLahir = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
           }
-        } catch(e) {}
+        } catch (e) { }
       }
       const tempatTglLahir = `${warga?.tempatLahir || '-'}, ${formattedTanggalLahir}`;
-      
+
       const now = new Date()
       const tglSurat = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      
+
       const berlakuDate = new Date(now)
       berlakuDate.setMonth(berlakuDate.getMonth() + 3) // Berlaku 3 bulan otomatis
       const tglBerlaku = berlakuDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
+      const toTitleCase = (str: string | undefined | null) => {
+        if (!str) return '';
+        return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+      };
+
       // Render dokumen dengan data
       doc.render({
-        nama: namaPemohon,
-        NAMA: namaPemohon,
+        nama: toTitleCase(namaPemohon),
+        NAMA: toTitleCase(namaPemohon),
         nik: surat.nik,
         NIK: surat.nik,
         noKk: surat.noKk,
         NO_KK: surat.noKk,
-        keperluan: surat.keperluan,
-        KEPERLUAN: surat.keperluan,
-        tempatLahir: warga?.tempatLahir || '',
+        keperluan: toTitleCase(surat.keperluan),
+        KEPERLUAN: toTitleCase(surat.keperluan),
+        tempatLahir: toTitleCase(warga?.tempatLahir),
         tanggalLahir: warga?.tanggalLahir || '',
-        tempat_tanggal_lahir: tempatTglLahir,
-        TEMPAT_TANGGAL_LAHIR: tempatTglLahir,
-        tempatTanggalLahir: tempatTglLahir,
-        jenisKelamin: warga?.jenisKelamin || '',
-        JENIS_KELAMIN: warga?.jenisKelamin || '',
-        statusPerkawinan: warga?.statusPerkawinan || '',
-        STATUS_PERKAWINAN: warga?.statusPerkawinan || '',
-        agama: warga?.agama || '',
-        AGAMA: warga?.agama || '',
-        pekerjaan: warga?.jenisPekerjaan || '',
-        PEKERJAAN: warga?.jenisPekerjaan || '',
-        alamat: warga?.alamat || '',
-        ALAMAT: warga?.alamat || '',
+        tempat_tanggal_lahir: toTitleCase(tempatTglLahir),
+        TEMPAT_TANGGAL_LAHIR: toTitleCase(tempatTglLahir),
+        tempatTanggalLahir: toTitleCase(tempatTglLahir),
+        jenisKelamin: toTitleCase(warga?.jenisKelamin),
+        JENIS_KELAMIN: toTitleCase(warga?.jenisKelamin),
+        statusPerkawinan: toTitleCase(warga?.statusPerkawinan),
+        STATUS_PERKAWINAN: toTitleCase(warga?.statusPerkawinan),
+        agama: toTitleCase(warga?.agama),
+        AGAMA: toTitleCase(warga?.agama),
+        pekerjaan: toTitleCase(warga?.jenisPekerjaan),
+        PEKERJAAN: toTitleCase(warga?.jenisPekerjaan),
+        alamat: toTitleCase(warga?.alamat),
+        ALAMAT: toTitleCase(warga?.alamat),
         rt: warga?.rt || '',
         rw: warga?.rw || '',
         tanggal: tglSurat,
         tanggal_surat: tglSurat,
         TANGGAL_SURAT: tglSurat,
-        
-        namaKk: metadata?.namaKk || '',
-        namaKtp: metadata?.namaKtp || '',
-        tempatLahirKk: warga?.tempatLahir || '',
+
+        namaKk: toTitleCase(metadata?.namaKk),
+        namaKtp: toTitleCase(metadata?.namaKtp),
+        tempatLahirKk: toTitleCase(warga?.tempatLahir),
         tanggalLahirKk: warga?.tanggalLahir || '',
 
-        nama_program: metadata?.namaProgram || '',
-        NAMA_PROGRAM: metadata?.namaProgram || '',
-        namaProgram: metadata?.namaProgram || '',
-        
+        nama_program: toTitleCase(metadata?.namaProgram),
+        NAMA_PROGRAM: toTitleCase(metadata?.namaProgram),
+        namaProgram: toTitleCase(metadata?.namaProgram),
+
         tahun_program: metadata?.tahunProgram || '',
         TAHUN_PROGRAM: metadata?.tahunProgram || '',
         tahunProgram: metadata?.tahunProgram || '',
 
-        nama_usaha: metadata?.namaUsaha || '',
-        NAMA_USAHA: metadata?.namaUsaha || '',
-        namaUsaha: metadata?.namaUsaha || '',
+        nama_usaha: toTitleCase(metadata?.namaUsaha),
+        NAMA_USAHA: toTitleCase(metadata?.namaUsaha),
+        namaUsaha: toTitleCase(metadata?.namaUsaha),
 
-        sektor_usaha: metadata?.sektorUsaha || '',
-        SEKTOR_USAHA: metadata?.sektorUsaha || '',
-        sektorUsaha: metadata?.sektorUsaha || '',
+        sektor_usaha: toTitleCase(metadata?.sektorUsaha),
+        SEKTOR_USAHA: toTitleCase(metadata?.sektorUsaha),
+        sektorUsaha: toTitleCase(metadata?.sektorUsaha),
 
         nomor_kontak: metadata?.nomorKontak || '',
         NOMOR_KONTAK: metadata?.nomorKontak || '',
         nomorKontak: metadata?.nomorKontak || '',
 
-        bidang_usaha: metadata?.bidangUsaha || '',
-        BIDANG_USAHA: metadata?.bidangUsaha || '',
-        bidangUsaha: metadata?.bidangUsaha || '',
+        bidang_usaha: toTitleCase(metadata?.bidangUsaha),
+        BIDANG_USAHA: toTitleCase(metadata?.bidangUsaha),
+        bidangUsaha: toTitleCase(metadata?.bidangUsaha),
 
-        alamat_usaha: metadata?.alamatUsaha || '',
-        ALAMAT_USAHA: metadata?.alamatUsaha || '',
-        alamatUsaha: metadata?.alamatUsaha || '',
+        alamat_usaha: toTitleCase(metadata?.alamatUsaha),
+        ALAMAT_USAHA: toTitleCase(metadata?.alamatUsaha),
+        alamatUsaha: toTitleCase(metadata?.alamatUsaha),
 
         lama_usaha: metadata?.lamaUsaha || '',
         LAMA_USAHA: metadata?.lamaUsaha || '',
         lamaUsaha: metadata?.lamaUsaha || '',
-        
+
         tanggal_berlaku: tglBerlaku,
         TANGGAL_BERLAKU: tglBerlaku,
         tanggalBerlaku: tglBerlaku,
@@ -491,8 +496,8 @@ export async function suratRoutes(fastify: FastifyInstance) {
       return reply.send(buf)
     } catch (error: any) {
       console.error('Error generating document:', error)
-      const details = error.properties && error.properties.errors 
-        ? error.properties.errors.map((e: any) => e.message).join(', ') 
+      const details = error.properties && error.properties.errors
+        ? error.properties.errors.map((e: any) => e.message).join(', ')
         : error.message;
       return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details, stack: error.stack })
     }

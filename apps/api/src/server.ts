@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
+import { pool } from './db/index.js'
 import { seedDatabase } from './db/seed.js'
 import { adminRoutes } from './routes/admin.js'
 import { pengumumanRoutes } from './routes/pengumuman.js'
@@ -68,11 +69,16 @@ async function start() {
 
 void start()
 
-async function closeDatabase() {
-  await app.close()
+async function gracefulShutdown() {
+  try {
+    await app.close()
+    await pool.end()
+  } catch (err) {
+    app.log.error(err)
+  }
 }
 
-process.once('SIGINT', closeDatabase)
-process.once('SIGTERM', closeDatabase)
+process.once('SIGINT', gracefulShutdown)
+process.once('SIGTERM', gracefulShutdown)
 
 export default app

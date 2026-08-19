@@ -35,6 +35,25 @@ const allowedDocumentTypes = new Set([
     'image/webp',
     'application/pdf',
 ]);
+// In-memory template and signature asset caching for blazing-fast generation
+const templateCache = new Map();
+const imageCache = new Map();
+function getCachedTemplate(templatePath) {
+    let cached = templateCache.get(templatePath);
+    if (!cached) {
+        cached = fs.readFileSync(templatePath, 'binary');
+        templateCache.set(templatePath, cached);
+    }
+    return cached;
+}
+function getCachedImage(imagePath) {
+    let cached = imageCache.get(imagePath);
+    if (!cached) {
+        cached = fs.readFileSync(imagePath);
+        imageCache.set(imagePath, cached);
+    }
+    return cached;
+}
 export async function suratRoutes(fastify) {
     // POST /api/surat (multipart — public)
     fastify.post('/api/surat', async (request, reply) => {
@@ -284,12 +303,12 @@ export async function suratRoutes(fastify) {
             return reply.status(404).send({ error: 'Template surat tidak ditemukan' });
         }
         try {
-            const content = fs.readFileSync(templatePath, 'binary');
+            const content = getCachedTemplate(templatePath);
             const zip = new PizZip(content);
             const opts = {
                 centered: false,
                 getImage(tagValue) {
-                    return fs.readFileSync(tagValue);
+                    return getCachedImage(tagValue);
                 },
                 getSize() {
                     return [200, 110]; // Width and height of the signature

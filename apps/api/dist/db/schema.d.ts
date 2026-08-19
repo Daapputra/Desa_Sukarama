@@ -1,6 +1,6 @@
 /**
  * Schema Drizzle ORM — exact match dengan tabel PostgreSQL existing
- * JANGAN ubah nama kolom, tipe data, atau constraint
+ * Lengkap dengan index optimasi query
  */
 export declare const adminUsers: import("drizzle-orm/pg-core").PgTableWithColumns<{
     name: "admin_users";

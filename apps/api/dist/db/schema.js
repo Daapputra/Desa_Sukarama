@@ -1,8 +1,8 @@
-import { pgTable, serial, varchar, text, integer, timestamp, check } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, integer, timestamp, check, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 /**
  * Schema Drizzle ORM — exact match dengan tabel PostgreSQL existing
- * JANGAN ubah nama kolom, tipe data, atau constraint
+ * Lengkap dengan index optimasi query
  */
 export const adminUsers = pgTable('admin_users', {
     id: serial('id').primaryKey(),
@@ -16,7 +16,10 @@ export const pengumuman = pgTable('pengumuman', {
     konten: text('konten').notNull(),
     tanggal: varchar('tanggal', { length: 50 }).notNull(),
     createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => [
+    index('idx_pengumuman_tanggal').on(table.tanggal),
+    index('idx_pengumuman_created_at').on(table.createdAt),
+]);
 export const suratPengajuan = pgTable('surat_pengajuan', {
     id: serial('id').primaryKey(),
     refNumber: varchar('ref_number', { length: 100 }).unique().notNull(),
@@ -32,6 +35,9 @@ export const suratPengajuan = pgTable('surat_pengajuan', {
     createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
     check('surat_pengajuan_status_check', sql `${table.status} IN ('Diajukan', 'Diproses', 'Selesai')`),
+    index('idx_surat_nik').on(table.nik),
+    index('idx_surat_status').on(table.status),
+    index('idx_surat_created_at').on(table.createdAt),
 ]);
 export const umkmProduk = pgTable('umkm_produk', {
     id: serial('id').primaryKey(),
@@ -45,6 +51,8 @@ export const umkmProduk = pgTable('umkm_produk', {
     createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
     check('umkm_produk_kategori_check', sql `${table.kategori} IN ('Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya')`),
+    index('idx_umkm_kategori').on(table.kategori),
+    index('idx_umkm_created_at').on(table.createdAt),
 ]);
 export const pesanKontak = pgTable('pesan_kontak', {
     id: serial('id').primaryKey(),
@@ -53,7 +61,10 @@ export const pesanKontak = pgTable('pesan_kontak', {
     pesan: text('pesan').notNull(),
     dibaca: integer('dibaca').default(0),
     createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => [
+    index('idx_pesan_dibaca').on(table.dibaca),
+    index('idx_pesan_created_at').on(table.createdAt),
+]);
 export const penduduk = pgTable('penduduk', {
     id: serial('id').primaryKey(),
     noKk: varchar('no_kk', { length: 50 }).notNull(),
@@ -70,5 +81,8 @@ export const penduduk = pgTable('penduduk', {
     rt: varchar('rt', { length: 10 }),
     rw: varchar('rw', { length: 10 }),
     createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => [
+    index('idx_penduduk_no_kk').on(table.noKk),
+    index('idx_penduduk_nama_lengkap').on(table.namaLengkap),
+]);
 //# sourceMappingURL=schema.js.map

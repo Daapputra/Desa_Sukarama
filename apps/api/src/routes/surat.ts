@@ -41,6 +41,28 @@ const allowedDocumentTypes = new Set([
   'application/pdf',
 ])
 
+// In-memory template and signature asset caching for blazing-fast generation
+const templateCache = new Map<string, string>()
+const imageCache = new Map<string, Buffer>()
+
+function getCachedTemplate(templatePath: string): string {
+  let cached = templateCache.get(templatePath)
+  if (!cached) {
+    cached = fs.readFileSync(templatePath, 'binary')
+    templateCache.set(templatePath, cached)
+  }
+  return cached
+}
+
+function getCachedImage(imagePath: string): Buffer {
+  let cached = imageCache.get(imagePath)
+  if (!cached) {
+    cached = fs.readFileSync(imagePath)
+    imageCache.set(imagePath, cached)
+  }
+  return cached
+}
+
 export async function suratRoutes(fastify: FastifyInstance) {
   // POST /api/surat (multipart — public)
   fastify.post('/api/surat', async (request, reply) => {
@@ -311,13 +333,13 @@ export async function suratRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const content = fs.readFileSync(templatePath, 'binary')
+      const content = getCachedTemplate(templatePath)
       const zip = new PizZip(content)
       
       const opts = {
         centered: false,
         getImage(tagValue: string) {
-          return fs.readFileSync(tagValue)
+          return getCachedImage(tagValue)
         },
         getSize() {
           return [200, 110] // Width and height of the signature

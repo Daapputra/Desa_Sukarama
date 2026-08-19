@@ -72,22 +72,32 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   // GET /api/admin/stats
   fastify.get('/api/admin/stats', { preHandler: requireAuth }, async () => {
-    const [suratBaru] = await db.select({ c: count() }).from(suratPengajuan).where(eq(suratPengajuan.status, 'Diajukan'))
-    const [suratProses] = await db.select({ c: count() }).from(suratPengajuan).where(eq(suratPengajuan.status, 'Diproses'))
-    const [suratSelesai] = await db.select({ c: count() }).from(suratPengajuan).where(eq(suratPengajuan.status, 'Selesai'))
-    const [totalSurat] = await db.select({ c: count() }).from(suratPengajuan)
-    const [totalUmkm] = await db.select({ c: count() }).from(umkmProduk)
-    const [totalPengumuman] = await db.select({ c: count() }).from(pengumuman)
-    const [pesanBaru] = await db.select({ c: count() }).from(pesanKontak).where(eq(pesanKontak.dibaca, 0))
+    const [
+      [suratBaru],
+      [suratProses],
+      [suratSelesai],
+      [totalSurat],
+      [totalUmkm],
+      [totalPengumuman],
+      [pesanBaru],
+    ] = await Promise.all([
+      db.select({ c: count() }).from(suratPengajuan).where(eq(suratPengajuan.status, 'Diajukan')),
+      db.select({ c: count() }).from(suratPengajuan).where(eq(suratPengajuan.status, 'Diproses')),
+      db.select({ c: count() }).from(suratPengajuan).where(eq(suratPengajuan.status, 'Selesai')),
+      db.select({ c: count() }).from(suratPengajuan),
+      db.select({ c: count() }).from(umkmProduk),
+      db.select({ c: count() }).from(pengumuman),
+      db.select({ c: count() }).from(pesanKontak).where(eq(pesanKontak.dibaca, 0)),
+    ])
 
     return {
-      surat_baru: suratBaru.c,
-      surat_proses: suratProses.c,
-      surat_selesai: suratSelesai.c,
-      total_surat: totalSurat.c,
-      total_umkm: totalUmkm.c,
-      total_pengumuman: totalPengumuman.c,
-      pesan_baru: pesanBaru.c,
+      surat_baru: suratBaru?.c ?? 0,
+      surat_proses: suratProses?.c ?? 0,
+      surat_selesai: suratSelesai?.c ?? 0,
+      total_surat: totalSurat?.c ?? 0,
+      total_umkm: totalUmkm?.c ?? 0,
+      total_pengumuman: totalPengumuman?.c ?? 0,
+      pesan_baru: pesanBaru?.c ?? 0,
     }
   })
 }

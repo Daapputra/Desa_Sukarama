@@ -1,5 +1,5 @@
 # ── Stage 1: Build Nuxt Application ─────────────────────────
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -11,8 +11,8 @@ ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/
 
-# Install dependencies
-RUN npm install
+# Install dependencies (use --ignore-scripts to defer nuxt prepare until code is copied)
+RUN npm install --ignore-scripts
 
 # Copy frontend source code and static assets
 COPY apps/web ./apps/web
@@ -21,7 +21,7 @@ COPY apps/web ./apps/web
 RUN npm --prefix apps/web run build
 
 # ── Stage 2: Production Nitro Runtime ───────────────────────
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 

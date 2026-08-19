@@ -1,5 +1,5 @@
 # ── Stage 1: Build & Dependencies ──────────────────────────
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 
 # Install dependencies for compilation
-RUN npm install
+RUN npm install --ignore-scripts
 
 # Copy backend source code and configurations
 COPY apps/api ./apps/api
@@ -17,7 +17,7 @@ COPY apps/api ./apps/api
 RUN npm --prefix apps/api run build
 
 # ── Stage 2: Production Runtime ────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app/apps/api
 

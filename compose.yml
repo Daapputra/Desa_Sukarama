@@ -15,11 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 5s
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-
-  # ── Fastify Backend API ───────────────────────────────────
+      - "${POSTGRES_PORT:-5434}:5432"
   api:
     build:
       context: .

@@ -1,14 +1,13 @@
 # ── Stage 1: Build & Dependencies ──────────────────────────
 FROM node:22-slim AS builder
 
+WORKDIR /app
+
+COPY package.json ./
+COPY apps/api ./apps/api
+
 WORKDIR /app/apps/api
-
-COPY apps/api/package.json ./package.json
-
-RUN npm install
-
-COPY apps/api ./
-
+RUN npm install --ignore-scripts
 RUN npm run build
 
 # ── Stage 2: Production Runtime ────────────────────────────

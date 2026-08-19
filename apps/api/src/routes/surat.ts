@@ -46,12 +46,8 @@ const templateCache = new Map<string, string>()
 const imageCache = new Map<string, Buffer>()
 
 function getCachedTemplate(templatePath: string): string {
-  let cached = templateCache.get(templatePath)
-  if (!cached) {
-    cached = fs.readFileSync(templatePath, 'binary')
-    templateCache.set(templatePath, cached)
-  }
-  return cached
+  // Nonaktifkan cache sementara (baca file fresh) agar editan MS Word langsung berefek
+  return fs.readFileSync(templatePath, 'binary')
 }
 
 function getCachedImage(imagePath: string): Buffer {
@@ -342,7 +338,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
           return getCachedImage(tagValue)
         },
         getSize() {
-          return [200, 110] // Width and height of the signature
+          return [130, 70] // Width and height of the signature (dikurangi agar tidak terlalu besar)
         }
       }
       const imageModule = new ImageModule(opts)
@@ -398,16 +394,18 @@ export async function suratRoutes(fastify: FastifyInstance) {
         return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
       };
 
+      const toUpper = (str: string | undefined | null) => (str || '').toString().toUpperCase();
+
       // Render dokumen dengan data
       doc.render({
-        nama: toTitleCase(namaPemohon),
-        NAMA: toTitleCase(namaPemohon),
+        nama: toUpper(namaPemohon),
+        NAMA: toUpper(namaPemohon),
         nik: surat.nik,
         NIK: surat.nik,
         noKk: surat.noKk,
         NO_KK: surat.noKk,
-        keperluan: toTitleCase(surat.keperluan),
-        KEPERLUAN: toTitleCase(surat.keperluan),
+        keperluan: toUpper(surat.keperluan),
+        KEPERLUAN: toUpper(surat.keperluan),
         tempatLahir: toTitleCase(warga?.tempatLahir),
         tanggalLahir: warga?.tanggalLahir || '',
         tempat_tanggal_lahir: toTitleCase(tempatTglLahir),
@@ -473,9 +471,11 @@ export async function suratRoutes(fastify: FastifyInstance) {
         NOMOR_SURAT: (request.query as any).nomor_surat || surat.refNumber,
 
         jabatan_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
-        JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'SEKRETARIS DESA' : 'KEPALA DESA',
         nama_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
         NAMA_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        nip_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? '19820212 201001 1 015' : '-', // Ganti NIP Sekdes di sini
+        NIP_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? '19820212 201001 1 015' : '-', // Ganti NIP Kepala Desa jika ada
         nipd: '',
         NIPD: '',
 

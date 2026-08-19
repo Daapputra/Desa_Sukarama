@@ -1,23 +1,41 @@
-
-
-import { drizzle } from 'drizzle-orm/node-postgres'
-import pg from 'pg'
-import * as schema from './src/db/schema.js'
 import xlsx from 'xlsx'
 import path from 'path'
+import fs from 'fs'
+import { db, pool } from './src/db/index.js'
+import { penduduk } from './src/db/schema.js'
 
-const { Pool } = pg
+function findUploadPath(fileName: string): string {
+  const candidates = [
+    path.resolve(`../../uploads/${fileName}`),
+    path.resolve(`../uploads/${fileName}`),
+    path.resolve(`uploads/${fileName}`),
+    path.resolve(process.cwd(), `uploads/${fileName}`),
+    path.resolve(process.cwd(), `../uploads/${fileName}`),
+    path.resolve(process.cwd(), `../../uploads/${fileName}`),
+  ]
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c
+  }
+  return candidates[0]
+}
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-})
-
-const db = drizzle(pool, { schema })
+function cleanString(val: any): string | null {
+  if (val === undefined || val === null) return null
+  let s = String(val).trim()
+  if (s.startsWith("'")) s = s.replace(/^'+/, '').trim()
+  return s.length > 0 ? s : null
+}
 
 async function importPenduduk() {
-  console.log('🔄 Membaca file Excel...')
-  const filePath = path.resolve('../../uploads/Data Penduduk Desa Sukarama Kecamatan Bojongpicung Status Nik Permanen.xlsx')
+  console.log('🔄 Membaca file Excel kependudukan...')
+  const filePath = findUploadPath('Data Penduduk Desa Sukarama Kecamatan Bojongpicung Status Nik Permanen.xlsx')
   
+  if (!fs.existsSync(filePath)) {
+    console.error(`❌ File Excel tidak ditemukan di: ${filePath}`)
+    process.exit(1)
+  }
+
+  console.log(`📁 Lokasi file: ${filePath}`)
   const workbook = xlsx.readFile(filePath)
   const sheetName = workbook.SheetNames[0]
   const sheet = workbook.Sheets[sheetName]
@@ -25,63 +43,81 @@ async function importPenduduk() {
   // Ambil data dalam bentuk array of arrays
   const data = xlsx.utils.sheet_to_json<any[]>(sheet, { header: 1 })
   
-  // Data sebenarnya mulai dari baris ke-3 (index 2)
+  // Data dimulai dari baris ke-3 (index 2)
   const rows = data.slice(2)
   
-  const pendudukData = []
+  const pendudukMap = new Map<string, any>()
   
   for (const row of rows) {
-    // Abaikan baris kosong
-    if (!row[1] || !row[2] || !row[3]) continue;
+    if (!row || row.length === 0) continue
+
+    const noKk = cleanString(row[1])
+    const namaLengkap = cleanString(row[2])
+    const nik = cleanString(row[3])
     
-    // NIK (index 3) biasanya bisa terbaca sebagai number oleh Excel, ubah jadi string
-    const nik = String(row[3]).trim()
-    const noKk = String(row[1]).trim()
-    const namaLengkap = String(row[2]).trim()
-    
-    if (nik.length < 5) continue;
-    
-    pendudukData.push({
-      noKk,
+    if (!nik || !namaLengkap || nik.length < 5) continue
+
+    pendudukMap.set(nik, {
+      noKk: noKk || '',
       nik,
       namaLengkap,
-      jenisKelamin: row[4] ? String(row[4]).trim() : null,
-      tempatLahir: row[5] ? String(row[5]).trim() : null,
-      tanggalLahir: row[6] ? String(row[6]).trim() : null,
-      agama: row[7] ? String(row[7]).trim() : null,
-      pendidikan: row[8] ? String(row[8]).trim() : null,
-      jenisPekerjaan: row[9] ? String(row[9]).trim() : null,
-      statusPerkawinan: row[11] ? String(row[11]).trim() : null,
-      alamat: row[20] ? String(row[20]).trim() : null,
-      rt: row[21] ? String(row[21]).trim() : null,
-      rw: row[22] ? String(row[22]).trim() : null,
+      jenisKelamin: cleanString(row[4]),
+      tempatLahir: cleanString(row[5]),
+      tanggalLahir: cleanString(row[6]),
+      agama: cleanString(row[7]),
+      pendidikan: cleanString(row[8]),
+      jenisPekerjaan: cleanString(row[9]),
+      statusPerkawinan: cleanString(row[11]),
+      alamat: cleanString(row[20]),
+      rt: cleanString(row[21]),
+      rw: cleanString(row[22]),
     })
   }
 
-  console.log(`📊 Ditemukan ${pendudukData.length} data penduduk. Memulai proses insert...`)
+  const pendudukList = Array.from(pendudukMap.values())
+  console.log(`📊 Ditemukan ${pendudukList.length} data penduduk unik. Memulai proses insert ke PostgreSQL...`)
   
-  // Insert dalam batch agar tidak error too many parameters
-  const batchSize = 1000
+  // Insert dalam batch agar efisien dan aman dari parameter limit
+  const batchSize = 500
   let inserted = 0
   
-  for (let i = 0; i < pendudukData.length; i += batchSize) {
-    const batch = pendudukData.slice(i, i + batchSize)
+  for (let i = 0; i < pendudukList.length; i += batchSize) {
+    const batch = pendudukList.slice(i, i + batchSize)
     
     try {
-      await db.insert(schema.penduduk)
+      await db.insert(penduduk)
         .values(batch)
-        .onConflictDoNothing({
-          target: schema.penduduk.nik
+        .onConflictDoUpdate({
+          target: penduduk.nik,
+          set: {
+            noKk: db.$inferInsert<typeof penduduk>['noKk'],
+            namaLengkap: db.$inferInsert<typeof penduduk>['namaLengkap'],
+            jenisKelamin: db.$inferInsert<typeof penduduk>['jenisKelamin'],
+            tempatLahir: db.$inferInsert<typeof penduduk>['tempatLahir'],
+            tanggalLahir: db.$inferInsert<typeof penduduk>['tanggalLahir'],
+            agama: db.$inferInsert<typeof penduduk>['agama'],
+            pendidikan: db.$inferInsert<typeof penduduk>['pendidikan'],
+            jenisPekerjaan: db.$inferInsert<typeof penduduk>['jenisPekerjaan'],
+            statusPerkawinan: db.$inferInsert<typeof penduduk>['statusPerkawinan'],
+            alamat: db.$inferInsert<typeof penduduk>['alamat'],
+            rt: db.$inferInsert<typeof penduduk>['rt'],
+            rw: db.$inferInsert<typeof penduduk>['rw'],
+          }
         })
       inserted += batch.length
-      console.log(`✅ Berhasil insert ${inserted}/${pendudukData.length} data...`)
-    } catch (err) {
-      console.error(`❌ Gagal insert batch pada index ${i}:`, err)
+      console.log(`✅ Berhasil proses ${inserted}/${pendudukList.length} data...`)
+    } catch (err: any) {
+      console.error(`❌ Gagal insert batch pada index ${i}:`, err.message || err)
     }
   }
   
-  console.log('🎉 Selesai mengimport data penduduk!')
+  console.log(`\n🎉 Selesai! Sebanyak ${inserted} data penduduk Desa Sukarama berhasil masuk ke database PostgreSQL.`)
+  await pool.end()
   process.exit(0)
 }
 
-importPenduduk().catch(console.error)
+importPenduduk().catch(async (err) => {
+  console.error('❌ Error import penduduk:', err)
+  await pool.end()
+  process.exit(1)
+})

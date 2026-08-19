@@ -292,7 +292,20 @@ export async function suratRoutes(fastify: FastifyInstance) {
       templateName = 'Surat_Domisili.docx'
     }
 
-    const templatePath = path.resolve(`../web/public/templates/${templateName}`)
+    function findTemplatePath(fileName: string): string {
+      const candidates = [
+        path.resolve(`../web/public/templates/${fileName}`),
+        path.resolve(`apps/web/public/templates/${fileName}`),
+        path.resolve(process.cwd(), `../web/public/templates/${fileName}`),
+        path.resolve(process.cwd(), `apps/web/public/templates/${fileName}`),
+      ]
+      for (const c of candidates) {
+        if (fs.existsSync(c)) return c
+      }
+      return candidates[0]
+    }
+
+    const templatePath = findTemplatePath(templateName)
     if (!fs.existsSync(templatePath)) {
       return reply.status(404).send({ error: 'Template surat tidak ditemukan' })
     }
@@ -336,7 +349,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
 
       const penandatangan = metadata?.penandatangan || 'Kepala Desa';
       const ttdFileName = penandatangan === 'Sekretaris Desa' ? 'ttd_sekdes.png' : 'ttd kades.png';
-      const ttdPath = path.resolve(`../web/public/templates/${ttdFileName}`);
+      const ttdPath = findTemplatePath(ttdFileName);
       
 
       const namaPemohon = warga?.namaLengkap || surat.nama;

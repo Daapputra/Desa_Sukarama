@@ -9,7 +9,8 @@
     "start": "node --env-file=.env dist/server.js",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx --env-file=.env src/db/seed.ts"
+    "db:seed": "tsx --env-file=.env src/db/seed.ts",
+    "import:penduduk": "tsx --env-file=.env import-penduduk.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",

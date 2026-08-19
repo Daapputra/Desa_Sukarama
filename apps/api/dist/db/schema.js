@@ -28,6 +28,7 @@ export const suratPengajuan = pgTable('surat_pengajuan', {
     noWa: varchar('no_wa', { length: 50 }).notNull(),
     dokumenPath: text('dokumen_path'),
     status: varchar('status', { length: 50 }).default('Diajukan'),
+    metadata: text('metadata').$type(),
     createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
     check('surat_pengajuan_status_check', sql `${table.status} IN ('Diajukan', 'Diproses', 'Selesai')`),
@@ -51,6 +52,23 @@ export const pesanKontak = pgTable('pesan_kontak', {
     kontak: varchar('kontak', { length: 255 }).notNull(),
     pesan: text('pesan').notNull(),
     dibaca: integer('dibaca').default(0),
+    createdAt: timestamp('created_at').defaultNow(),
+});
+export const penduduk = pgTable('penduduk', {
+    id: serial('id').primaryKey(),
+    noKk: varchar('no_kk', { length: 50 }).notNull(),
+    nik: varchar('nik', { length: 50 }).unique().notNull(),
+    namaLengkap: varchar('nama_lengkap', { length: 255 }).notNull(),
+    jenisKelamin: varchar('jenis_kelamin', { length: 50 }),
+    tempatLahir: varchar('tempat_lahir', { length: 100 }),
+    tanggalLahir: varchar('tanggal_lahir', { length: 50 }),
+    agama: varchar('agama', { length: 50 }),
+    pendidikan: varchar('pendidikan', { length: 100 }),
+    jenisPekerjaan: varchar('jenis_pekerjaan', { length: 100 }),
+    statusPerkawinan: varchar('status_perkawinan', { length: 50 }),
+    alamat: text('alamat'),
+    rt: varchar('rt', { length: 10 }),
+    rw: varchar('rw', { length: 10 }),
     createdAt: timestamp('created_at').defaultNow(),
 });
 //# sourceMappingURL=schema.js.map

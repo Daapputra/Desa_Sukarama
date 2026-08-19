@@ -154,7 +154,9 @@ function downloadSurat(id: number) {
   const nomor = window.prompt('Masukkan Nomor Surat Resmi (kosongkan jika ingin memakai nomor referensi bawaan):')
   if (nomor === null) return // Canceled
 
-  const url = new URL(`http://localhost:3005/api/surat/${id}/download-surat`)
+  const config = useRuntimeConfig()
+  const apiBase = config.public.apiBase || 'http://localhost:3005'
+  const url = new URL(`${apiBase}/api/surat/${id}/download-surat`)
   if (nomor.trim()) {
     url.searchParams.set('nomor_surat', nomor.trim())
   }

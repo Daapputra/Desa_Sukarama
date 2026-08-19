@@ -10,28 +10,48 @@
     --card-foreground: 215 25% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 10%;
-    --primary: 122 54% 24%;
+    --primary: 142 76% 22%; /* Deep emerald village green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 14% 96%;
+    --secondary: 210 20% 96%;
     --secondary-foreground: 215 25% 15%;
-    --muted: 210 14% 96%;
+    --muted: 210 20% 96%;
     --muted-foreground: 215 16% 46%;
-    --accent: 122 38% 93%;
-    --accent-foreground: 122 54% 24%;
+    --accent: 142 45% 94%;
+    --accent-foreground: 142 76% 22%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 20% 90%;
     --input: 214 20% 90%;
-    --ring: 122 54% 24%;
-    --radius: 0.625rem;
+    --ring: 142 76% 22%;
+    --radius: 0.75rem;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 }
 
@@ -39,10 +59,35 @@
   .container-app {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
+
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/60 shadow-lg shadow-slate-900/5;
+  }
+
+  .badge-primary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60;
+  }
+
+  .badge-amber {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/60;
+  }
+
+  .badge-blue {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@keyframes heroBgZoom {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.06);
   }
 }

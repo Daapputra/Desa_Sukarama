@@ -8,7 +8,7 @@ import { suratRoutes } from './routes/surat.js'
 import { umkmRoutes } from './routes/umkm.js'
 import { kontakRoutes } from './routes/kontak.js'
 
-const PORT = parseInt(process.env.API_PORT || '3001')
+const PORT = parseInt(process.env.API_PORT || process.env.PORT || '3005')
 
 const app = Fastify({
   logger: true,

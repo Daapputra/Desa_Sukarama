@@ -39,12 +39,8 @@ const allowedDocumentTypes = new Set([
 const templateCache = new Map();
 const imageCache = new Map();
 function getCachedTemplate(templatePath) {
-    let cached = templateCache.get(templatePath);
-    if (!cached) {
-        cached = fs.readFileSync(templatePath, 'binary');
-        templateCache.set(templatePath, cached);
-    }
-    return cached;
+    // Nonaktifkan cache sementara (baca file fresh) agar editan MS Word langsung berefek
+    return fs.readFileSync(templatePath, 'binary');
 }
 function getCachedImage(imagePath) {
     let cached = imageCache.get(imagePath);
@@ -311,7 +307,7 @@ export async function suratRoutes(fastify) {
                     return getCachedImage(tagValue);
                 },
                 getSize() {
-                    return [200, 110]; // Width and height of the signature
+                    return [130, 70]; // Width and height of the signature (dikurangi agar tidak terlalu besar)
                 }
             };
             const imageModule = new ImageModule(opts);
@@ -359,61 +355,67 @@ export async function suratRoutes(fastify) {
             const berlakuDate = new Date(now);
             berlakuDate.setMonth(berlakuDate.getMonth() + 3); // Berlaku 3 bulan otomatis
             const tglBerlaku = berlakuDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const toTitleCase = (str) => {
+                if (!str)
+                    return '';
+                return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+            };
+            const toUpper = (str) => (str || '').toString().toUpperCase();
             // Render dokumen dengan data
             doc.render({
-                nama: namaPemohon,
-                NAMA: namaPemohon,
+                nama: toUpper(namaPemohon),
+                NAMA: toUpper(namaPemohon),
                 nik: surat.nik,
                 NIK: surat.nik,
                 noKk: surat.noKk,
                 NO_KK: surat.noKk,
-                keperluan: surat.keperluan,
-                KEPERLUAN: surat.keperluan,
-                tempatLahir: warga?.tempatLahir || '',
+                keperluan: toUpper(surat.keperluan),
+                KEPERLUAN: toUpper(surat.keperluan),
+                tempatLahir: toTitleCase(warga?.tempatLahir),
                 tanggalLahir: warga?.tanggalLahir || '',
-                tempat_tanggal_lahir: tempatTglLahir,
-                TEMPAT_TANGGAL_LAHIR: tempatTglLahir,
-                tempatTanggalLahir: tempatTglLahir,
-                jenisKelamin: warga?.jenisKelamin || '',
-                JENIS_KELAMIN: warga?.jenisKelamin || '',
-                statusPerkawinan: warga?.statusPerkawinan || '',
-                STATUS_PERKAWINAN: warga?.statusPerkawinan || '',
-                agama: warga?.agama || '',
-                AGAMA: warga?.agama || '',
-                pekerjaan: warga?.jenisPekerjaan || '',
-                PEKERJAAN: warga?.jenisPekerjaan || '',
-                alamat: warga?.alamat || '',
-                ALAMAT: warga?.alamat || '',
+                tempat_tanggal_lahir: toTitleCase(tempatTglLahir),
+                TEMPAT_TANGGAL_LAHIR: toTitleCase(tempatTglLahir),
+                tempatTanggalLahir: toTitleCase(tempatTglLahir),
+                jenisKelamin: toTitleCase(warga?.jenisKelamin),
+                JENIS_KELAMIN: toTitleCase(warga?.jenisKelamin),
+                statusPerkawinan: toTitleCase(warga?.statusPerkawinan),
+                STATUS_PERKAWINAN: toTitleCase(warga?.statusPerkawinan),
+                agama: toTitleCase(warga?.agama),
+                AGAMA: toTitleCase(warga?.agama),
+                pekerjaan: toTitleCase(warga?.jenisPekerjaan),
+                PEKERJAAN: toTitleCase(warga?.jenisPekerjaan),
+                alamat: toTitleCase(warga?.alamat),
+                ALAMAT: toTitleCase(warga?.alamat),
                 rt: warga?.rt || '',
                 rw: warga?.rw || '',
                 tanggal: tglSurat,
                 tanggal_surat: tglSurat,
                 TANGGAL_SURAT: tglSurat,
-                namaKk: metadata?.namaKk || '',
-                namaKtp: metadata?.namaKtp || '',
-                tempatLahirKk: warga?.tempatLahir || '',
+                namaKk: toTitleCase(metadata?.namaKk),
+                namaKtp: toTitleCase(metadata?.namaKtp),
+                tempatLahirKk: toTitleCase(warga?.tempatLahir),
                 tanggalLahirKk: warga?.tanggalLahir || '',
-                nama_program: metadata?.namaProgram || '',
-                NAMA_PROGRAM: metadata?.namaProgram || '',
-                namaProgram: metadata?.namaProgram || '',
+                nama_program: toTitleCase(metadata?.namaProgram),
+                NAMA_PROGRAM: toTitleCase(metadata?.namaProgram),
+                namaProgram: toTitleCase(metadata?.namaProgram),
                 tahun_program: metadata?.tahunProgram || '',
                 TAHUN_PROGRAM: metadata?.tahunProgram || '',
                 tahunProgram: metadata?.tahunProgram || '',
-                nama_usaha: metadata?.namaUsaha || '',
-                NAMA_USAHA: metadata?.namaUsaha || '',
-                namaUsaha: metadata?.namaUsaha || '',
-                sektor_usaha: metadata?.sektorUsaha || '',
-                SEKTOR_USAHA: metadata?.sektorUsaha || '',
-                sektorUsaha: metadata?.sektorUsaha || '',
+                nama_usaha: toTitleCase(metadata?.namaUsaha),
+                NAMA_USAHA: toTitleCase(metadata?.namaUsaha),
+                namaUsaha: toTitleCase(metadata?.namaUsaha),
+                sektor_usaha: toTitleCase(metadata?.sektorUsaha),
+                SEKTOR_USAHA: toTitleCase(metadata?.sektorUsaha),
+                sektorUsaha: toTitleCase(metadata?.sektorUsaha),
                 nomor_kontak: metadata?.nomorKontak || '',
                 NOMOR_KONTAK: metadata?.nomorKontak || '',
                 nomorKontak: metadata?.nomorKontak || '',
-                bidang_usaha: metadata?.bidangUsaha || '',
-                BIDANG_USAHA: metadata?.bidangUsaha || '',
-                bidangUsaha: metadata?.bidangUsaha || '',
-                alamat_usaha: metadata?.alamatUsaha || '',
-                ALAMAT_USAHA: metadata?.alamatUsaha || '',
-                alamatUsaha: metadata?.alamatUsaha || '',
+                bidang_usaha: toTitleCase(metadata?.bidangUsaha),
+                BIDANG_USAHA: toTitleCase(metadata?.bidangUsaha),
+                bidangUsaha: toTitleCase(metadata?.bidangUsaha),
+                alamat_usaha: toTitleCase(metadata?.alamatUsaha),
+                ALAMAT_USAHA: toTitleCase(metadata?.alamatUsaha),
+                alamatUsaha: toTitleCase(metadata?.alamatUsaha),
                 lama_usaha: metadata?.lamaUsaha || '',
                 LAMA_USAHA: metadata?.lamaUsaha || '',
                 lamaUsaha: metadata?.lamaUsaha || '',
@@ -423,9 +425,11 @@ export async function suratRoutes(fastify) {
                 nomor_surat: request.query.nomor_surat || surat.refNumber,
                 NOMOR_SURAT: request.query.nomor_surat || surat.refNumber,
                 jabatan_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
-                JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+                JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'SEKRETARIS DESA' : 'KEPALA DESA',
                 nama_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
                 NAMA_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+                nip_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? '19820212 201001 1 015' : '-', // Ganti NIP Sekdes di sini
+                NIP_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? '19820212 201001 1 015' : '-', // Ganti NIP Kepala Desa jika ada
                 nipd: '',
                 NIPD: '',
                 namaPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',

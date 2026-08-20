@@ -2,7 +2,7 @@
 import {
   FileText, ShoppingBag, Newspaper, MessageSquare, LogOut,
   Plus, Pencil, Trash2, Eye, AlertCircle, X, Printer, Search,
-  Clock, Globe, Loader2, Download
+  Clock, Globe, Loader2, Download, LayoutDashboard, MoreVertical
 } from 'lucide-vue-next'
 import { formatTanggal, formatRupiah, getStatusColor } from '~/utils/format'
 
@@ -28,14 +28,44 @@ onMounted(async () => {
 
 // Stats & active tab
 const stats = ref<any>(null)
-const activeTab = ref<'surat' | 'umkm' | 'pengumuman' | 'pesan'>('surat')
+const activeTab = ref<'ringkasan' | 'surat' | 'umkm' | 'pengumuman' | 'pesan'>('ringkasan')
 
-const tabs = [
-  { id: 'surat', label: 'Pengajuan Surat', icon: FileText },
-  { id: 'umkm', label: 'Produk UMKM', icon: ShoppingBag },
-  { id: 'pengumuman', label: 'Pengumuman', icon: Newspaper },
-  { id: 'pesan', label: 'Pesan Masuk', icon: MessageSquare },
-]
+// Live clock — real current time, ticks every second while the page is open
+const now = ref(new Date())
+let clockTimer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  clockTimer = setInterval(() => { now.value = new Date() }, 1000)
+})
+onBeforeUnmount(() => {
+  if (clockTimer) clearInterval(clockTimer)
+})
+const formattedDate = computed(() =>
+  now.value.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+)
+const formattedTime = computed(() =>
+  now.value.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+)
+
+const tabs = computed(() => [
+  { id: 'ringkasan', label: 'Ringkasan', icon: LayoutDashboard },
+  { id: 'surat', label: 'Pengajuan Surat', icon: FileText, count: suratList.value.length },
+  { id: 'umkm', label: 'Produk UMKM', icon: ShoppingBag, count: umkmList.value.length },
+  { id: 'pengumuman', label: 'Pengumuman', icon: Newspaper, count: pengumumanList.value.length },
+  { id: 'pesan', label: 'Pesan Masuk', icon: MessageSquare, count: pesanList.value.length },
+])
+
+const tabMeta: Record<string, { title: string; desc: string }> = {
+  ringkasan: {
+    title: 'Ringkasan Pelayanan Desa',
+    desc: 'Pantau permohonan surat masuk, direktori produk warga, dan komunikasi aspirasi publik.',
+  },
+  surat: { title: 'Pengajuan Surat', desc: 'Kelola permohonan surat masuk dari warga.' },
+  umkm: { title: 'Produk UMKM', desc: 'Kelola direktori produk usaha warga desa.' },
+  pengumuman: { title: 'Pengumuman', desc: 'Kelola warta dan agenda desa.' },
+  pesan: { title: 'Pesan Masuk', desc: 'Aspirasi dan masukan warga.' },
+}
+const activeTabLabel = computed(() => tabMeta[activeTab.value]?.title || '')
+const activeTabDescription = computed(() => tabMeta[activeTab.value]?.desc || '')
 
 // Data lists
 const suratList = ref<any[]>([])
@@ -142,6 +172,28 @@ const filteredPesan = computed(() => {
     )
   }
   return list
+})
+
+// Ringkasan (Overview) widgets — pure client-side derivations of already-fetched lists, no new API calls
+const recentSurat = computed(() =>
+  [...suratList.value]
+    .sort((a, b) => new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime())
+    .slice(0, 5)
+)
+
+const recentPesan = computed(() =>
+  [...pesanList.value]
+    .sort((a, b) => new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime())
+    .slice(0, 5)
+)
+
+const umkmByKategori = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const u of umkmList.value) {
+    const k = u.kategori || 'Lainnya'
+    counts[k] = (counts[k] || 0) + 1
+  }
+  return Object.entries(counts).map(([label, count]) => ({ label, count }))
 })
 
 // Status update for surat
@@ -262,198 +314,185 @@ function downloadSurat(id: number) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50/70 pb-20">
-    <!-- Top Navigation Bar -->
-    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <!-- Brand / Identity -->
-        <div class="flex items-center gap-3">
-          <NuxtLink to="/" class="flex items-center gap-3 group">
-            <img
-              src="/images/logo-desa.png"
-              alt="Logo Desa Sukarama"
-              class="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
-            />
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-black text-slate-900 text-sm tracking-tight group-hover:text-emerald-800 transition-colors">
-                  Panel Administrator
-                </span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60 hidden sm:inline">
-                  Desa Sukarama
-                </span>
-              </div>
-              <p class="text-[10px] text-slate-400 font-medium leading-none mt-0.5">
-                Kecamatan Bojongpicung, Cianjur
-              </p>
-            </div>
-          </NuxtLink>
-        </div>
+  <SidebarProvider>
+    <AdminSidebar
+      :tabs="tabs"
+      :active-tab="activeTab"
+      :username="adminUsername || ''"
+      @update:active-tab="activeTab = ($event as any)"
+      @logout="handleLogout"
+    />
 
-        <!-- User Menu & Actions -->
-        <div class="flex items-center gap-3 sm:gap-4">
-          <NuxtLink
-            to="/"
-            target="_blank"
-            class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 text-xs font-bold transition-all"
-            title="Buka Website Publik"
-          >
-            <Globe class="w-3.5 h-3.5 text-emerald-700" />
-            <span>Lihat Website</span>
-          </NuxtLink>
+    <SidebarInset class="bg-slate-50/70">
+      <!-- Mobile-only slim topbar -->
+      <header class="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 h-14 flex items-center justify-between px-4">
+        <SidebarTrigger class="text-slate-700" />
+        <span class="font-semibold text-slate-900 text-sm">{{ activeTabLabel }}</span>
+        <div class="w-9 h-9"></div>
+      </header>
 
-          <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/80 border border-slate-200/70 text-xs font-semibold text-slate-700">
-            <div class="w-5 h-5 rounded-full bg-emerald-800 text-white flex items-center justify-center text-[10px] font-black">
-              {{ (adminUsername || 'A').charAt(0).toUpperCase() }}
-            </div>
-            <span class="hidden sm:inline">{{ adminUsername }}</span>
-          </div>
-
-          <button
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200/60 transition-colors"
-            @click="handleLogout"
-            title="Keluar dari Panel Admin"
-          >
-            <LogOut class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">Logout</span>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-      <!-- Welcome & Stats Overview Banner -->
-      <div class="mb-8">
+      <!-- Main Content Area -->
+      <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Ringkasan Pelayanan Desa
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              {{ activeTabLabel }}
             </h1>
             <p class="text-xs text-slate-500 mt-1">
-              Pantau permohonan surat masuk, direktori produk warga, dan komunikasi aspirasi publik.
+              {{ activeTabDescription }}
             </p>
           </div>
-          <button
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto"
-            @click="loadAll"
-          >
-            <span>Segarkan Data</span>
-          </button>
-        </div>
-
-        <!-- 4 Stats Cards (Emerald / Amber / Blue / Purple accents) -->
-        <div v-if="stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm hover:border-amber-300 transition-all flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60">
-              <Clock class="w-6 h-6" />
-            </div>
-            <div>
-              <span class="text-2xl font-black text-slate-900 block leading-tight">{{ stats.surat_baru || 0 }}</span>
-              <span class="text-xs font-bold text-slate-500">Surat Baru Masuk</span>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm hover:border-blue-300 transition-all flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-200/60">
-              <FileText class="w-6 h-6" />
-            </div>
-            <div>
-              <span class="text-2xl font-black text-slate-900 block leading-tight">{{ stats.total_surat || 0 }}</span>
-              <span class="text-xs font-bold text-slate-500">Total Arsip Surat</span>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm hover:border-emerald-300 transition-all flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200/60">
-              <ShoppingBag class="w-6 h-6" />
-            </div>
-            <div>
-              <span class="text-2xl font-black text-slate-900 block leading-tight">{{ stats.total_umkm || 0 }}</span>
-              <span class="text-xs font-bold text-slate-500">Produk UMKM Terdaftar</span>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm hover:border-purple-300 transition-all flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/60">
-              <MessageSquare class="w-6 h-6" />
-            </div>
-            <div>
-              <span class="text-2xl font-black text-slate-900 block leading-tight">{{ stats.pesan_baru || 0 }}</span>
-              <span class="text-xs font-bold text-slate-500">Pesan Aspirasi Baru</span>
-            </div>
+          <div class="hidden md:flex flex-col items-end leading-tight self-start sm:self-auto">
+            <span class="text-sm font-semibold text-slate-700 tabular-nums">{{ formattedTime }}</span>
+            <span class="text-[11px] text-slate-400">{{ formattedDate }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- Navigation Tabs (Pill style matching layanan.vue) -->
-      <div class="flex justify-start mb-6 overflow-x-auto pb-2">
-        <div class="inline-flex p-1.5 rounded-full bg-slate-200/70 border border-slate-300/80 shadow-inner gap-1">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            class="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200"
-            :class="activeTab === tab.id
-              ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25'
-              : 'text-slate-600 hover:text-emerald-900'"
-            @click="activeTab = (tab.id as any)"
-          >
-            <component :is="tab.icon" class="w-4 h-4" />
-            <span>{{ tab.label }}</span>
-            <span
-              class="text-[10px] px-2 py-0.5 rounded-full font-extrabold"
-              :class="activeTab === tab.id ? 'bg-emerald-800 text-emerald-200' : 'bg-slate-300/70 text-slate-700'"
-            >
-              {{
-                tab.id === 'surat' ? suratList.length :
-                tab.id === 'umkm' ? umkmList.length :
-                tab.id === 'pengumuman' ? pengumumanList.length : pesanList.length
-              }}
-            </span>
-          </button>
+        <!-- TAB 0: RINGKASAN -->
+        <div v-if="activeTab === 'ringkasan'" class="space-y-6">
+          <!-- Stat grid — hairline dividers instead of separate shadowed cards, one flat surface -->
+          <div v-if="stats" class="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200/80 border border-slate-200/80 rounded-xl overflow-hidden">
+            <div class="bg-white p-5">
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Surat Baru</span>
+                <Clock class="w-3.5 h-3.5 text-slate-300" />
+              </div>
+              <span class="text-3xl font-semibold text-slate-900 tabular-nums">{{ (stats.surat_baru || 0).toLocaleString('id-ID') }}</span>
+            </div>
+            <div class="bg-white p-5">
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Total Surat</span>
+                <FileText class="w-3.5 h-3.5 text-slate-300" />
+              </div>
+              <span class="text-3xl font-semibold text-slate-900 tabular-nums">{{ (stats.total_surat || 0).toLocaleString('id-ID') }}</span>
+            </div>
+            <div class="bg-white p-5">
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Produk UMKM</span>
+                <ShoppingBag class="w-3.5 h-3.5 text-slate-300" />
+              </div>
+              <span class="text-3xl font-semibold text-slate-900 tabular-nums">{{ (stats.total_umkm || 0).toLocaleString('id-ID') }}</span>
+            </div>
+            <div class="bg-white p-5">
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Pesan Masuk</span>
+                <MessageSquare class="w-3.5 h-3.5 text-slate-300" />
+              </div>
+              <span class="text-3xl font-semibold text-slate-900 tabular-nums">{{ (stats.pesan_baru || 0).toLocaleString('id-ID') }}</span>
+            </div>
+          </div>
+
+          <!-- Status breakdown of surat — legend row, color used only as a meaning-carrying dot -->
+          <div class="bg-white rounded-xl border border-slate-200/80 p-5">
+            <h2 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-4">Status Pengajuan Surat</h2>
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                <span class="text-sm text-slate-600">Diajukan</span>
+                <span class="text-sm font-semibold text-slate-900 tabular-nums">{{ stats?.surat_baru || 0 }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
+                <span class="text-sm text-slate-600">Diproses</span>
+                <span class="text-sm font-semibold text-slate-900 tabular-nums">{{ stats?.surat_proses || 0 }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span class="text-sm text-slate-600">Selesai</span>
+                <span class="text-sm font-semibold text-slate-900 tabular-nums">{{ stats?.surat_selesai || 0 }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent surat / recent pesan -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl border border-slate-200/80 p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Pengajuan Surat Terbaru</h2>
+                <button class="text-xs font-medium text-emerald-700 hover:text-emerald-800" @click="activeTab = 'surat'">Lihat semua</button>
+              </div>
+              <ul class="divide-y divide-slate-100">
+                <li v-for="s in recentSurat" :key="s.id" class="py-3 flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="font-medium text-slate-900 text-xs truncate">{{ s.nama }}</p>
+                    <p class="text-[11px] text-slate-400">{{ s.jenisSurat || s.jenis_surat }} · {{ formatTanggal(s.createdAt || s.created_at) }}</p>
+                  </div>
+                  <Badge :class="[getStatusColor(s.status), 'rounded-md text-[10px] font-semibold shrink-0']">{{ s.status }}</Badge>
+                </li>
+                <li v-if="!recentSurat.length" class="py-6 text-center text-xs text-slate-400">Belum ada pengajuan surat.</li>
+              </ul>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200/80 p-5">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Pesan Terbaru</h2>
+                <button class="text-xs font-medium text-emerald-700 hover:text-emerald-800" @click="activeTab = 'pesan'">Lihat semua</button>
+              </div>
+              <ul class="divide-y divide-slate-100">
+                <li v-for="m in recentPesan" :key="m.id" class="py-3">
+                  <p class="font-medium text-slate-900 text-xs">{{ m.nama }}</p>
+                  <p class="text-[11px] text-slate-500 truncate">{{ m.pesan }}</p>
+                </li>
+                <li v-if="!recentPesan.length" class="py-6 text-center text-xs text-slate-400">Tidak ada pesan baru.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- UMKM by kategori -->
+          <div class="bg-white rounded-xl border border-slate-200/80 p-5">
+            <h2 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-4">Produk UMKM per Kategori</h2>
+            <div v-if="umkmByKategori.length" class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-slate-200/80 border border-slate-200/80 rounded-lg overflow-hidden">
+              <div v-for="k in umkmByKategori" :key="k.label" class="text-center py-3 bg-white">
+                <span class="text-lg font-semibold text-slate-900 block tabular-nums">{{ k.count }}</span>
+                <span class="text-[11px] text-slate-500">{{ k.label }}</span>
+              </div>
+            </div>
+            <p v-else class="text-center text-xs text-slate-400 py-4">Belum ada produk UMKM terdaftar.</p>
+          </div>
         </div>
-      </div>
 
-      <!-- TAB 1: PENGAJUAN SURAT -->
+        <!-- TAB 1: PENGAJUAN SURAT -->
       <div v-if="activeTab === 'surat'" class="space-y-4">
         <!-- Filter and Search controls -->
-        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div class="bg-white rounded-xl p-4 border border-slate-200/80 flex flex-col sm:flex-row gap-3 justify-between items-center">
           <div class="relative w-full sm:w-80">
-            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
+            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
+            <Input
               v-model="suratSearch"
               type="text"
-              class="w-full pl-10 pr-4 py-2 rounded-full border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+              class="w-full pl-10 pr-4 py-2.5 h-auto rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
               placeholder="Cari NIK, Nama, Ref, Jenis..."
             />
           </div>
 
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <span class="text-xs font-bold text-slate-500 whitespace-nowrap">Status:</span>
-            <select
-              v-model="suratStatusFilter"
-              class="px-3 py-2 rounded-full border border-slate-200 text-xs font-bold text-slate-700 bg-white outline-none focus:ring-2 focus:ring-emerald-800/20"
-            >
-              <option value="Semua">Semua Status</option>
-              <option value="Diajukan">Diajukan</option>
-              <option value="Diproses">Diproses</option>
-              <option value="Selesai">Selesai</option>
-            </select>
+            <span class="text-sm font-medium text-slate-500 whitespace-nowrap">Status:</span>
+            <Select v-model="suratStatusFilter">
+              <SelectTrigger class="rounded-lg border-slate-200 text-sm font-medium text-slate-700 h-auto py-2.5 w-full sm:w-40">
+                <SelectValue placeholder="Semua Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Semua">Semua Status</SelectItem>
+                <SelectItem value="Diajukan">Diajukan</SelectItem>
+                <SelectItem value="Diproses">Diproses</SelectItem>
+                <SelectItem value="Selesai">Selesai</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         <!-- Table -->
-        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">No. Ref</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Pemohon / NIK</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Jenis Dokumen</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Status & Aksi Cepat</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Tgl Pengajuan</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">No. Ref</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemohon / NIK</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jenis Dokumen</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status & Aksi Cepat</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tgl Pengajuan</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -463,51 +502,54 @@ function downloadSurat(id: number) {
                   class="hover:bg-slate-50/60 transition-colors"
                 >
                   <td class="px-5 py-4">
-                    <span class="font-mono text-xs font-bold text-slate-700 block">{{ s.ref_number || s.refNumber }}</span>
+                    <span class="font-mono text-sm font-medium text-slate-700 block">{{ s.ref_number || s.refNumber }}</span>
                     <span class="text-[10px] text-slate-400">ID: #{{ s.id }}</span>
                   </td>
                   <td class="px-5 py-4">
-                    <div class="font-bold text-slate-900 text-sm">{{ s.nama }}</div>
-                    <div class="text-xs text-slate-500 font-mono">NIK: {{ s.nik }}</div>
+                    <div class="font-medium text-slate-900 text-sm">{{ s.nama }}</div>
+                    <div class="text-sm text-slate-500 font-mono">NIK: {{ s.nik }}</div>
                   </td>
                   <td class="px-5 py-4">
-                    <span class="inline-block text-xs font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    <span class="inline-block text-sm font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
                       {{ s.jenis_surat || s.jenisSurat }}
                     </span>
                   </td>
                   <td class="px-5 py-4">
-                    <select
-                      :value="s.status"
-                      class="text-xs px-3 py-1.5 rounded-xl border font-bold outline-none cursor-pointer transition-all"
-                      :class="s.status === 'Selesai' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : s.status === 'Diproses' ? 'bg-blue-50 text-blue-800 border-blue-300' : 'bg-amber-50 text-amber-800 border-amber-300'"
-                      @change="updateSuratStatus(s.id, ($event.target as HTMLSelectElement).value)"
-                    >
-                      <option value="Diajukan">Diajukan</option>
-                      <option value="Diproses">Diproses</option>
-                      <option value="Selesai">Selesai</option>
-                    </select>
+                    <Select :model-value="s.status" @update:model-value="updateSuratStatus(s.id, $event as string)">
+                      <SelectTrigger
+                        class="text-sm px-3 py-1.5 h-auto rounded-lg border font-medium w-auto"
+                        :class="s.status === 'Selesai' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : s.status === 'Diproses' ? 'bg-blue-50 text-blue-800 border-blue-300' : 'bg-amber-50 text-amber-800 border-amber-300'"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Diajukan">Diajukan</SelectItem>
+                        <SelectItem value="Diproses">Diproses</SelectItem>
+                        <SelectItem value="Selesai">Selesai</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
-                  <td class="px-5 py-4 text-xs text-slate-500">
+                  <td class="px-5 py-4 text-sm text-slate-500">
                     {{ formatTanggal(s.created_at || s.createdAt) }}
                   </td>
                   <td class="px-5 py-4 text-right">
-                    <div class="inline-flex items-center gap-1.5">
-                      <button
-                        class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-                        @click="openDetailModal('surat', s)"
-                        title="Lihat Detail Permohonan"
-                      >
-                        <Eye class="w-4 h-4" />
-                      </button>
-                      <button
-                        v-if="s.status === 'Selesai'"
-                        @click="downloadSurat(s.id)"
-                        title="Cetak & Download Dokumen Word (.docx)"
-                        class="p-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white transition-colors shadow-sm"
-                      >
-                        <Printer class="w-4 h-4" />
-                      </button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="icon" class="rounded-lg text-slate-600 hover:text-slate-900 h-8 w-8">
+                          <MoreVertical class="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem @click="openDetailModal('surat', s)">
+                          <Eye class="w-3.5 h-3.5" />
+                          <span>Lihat Detail Permohonan</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem v-if="s.status === 'Selesai'" @click="downloadSurat(s.id)">
+                          <Printer class="w-3.5 h-3.5" />
+                          <span>Cetak & Download (.docx)</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               </tbody>
@@ -515,10 +557,10 @@ function downloadSurat(id: number) {
 
             <!-- Empty State -->
             <div v-if="!filteredSurat.length" class="text-center py-16 px-4">
-              <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <div class="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                 <FileText class="w-6 h-6" />
               </div>
-              <h3 class="font-bold text-slate-800 text-sm">Tidak ada permohonan surat</h3>
+              <h3 class="font-semibold text-slate-800 text-sm">Tidak ada permohonan surat</h3>
               <p class="text-xs text-slate-500 mt-1">Belum ada pengajuan surat yang sesuai dengan kata kunci atau filter status.</p>
             </div>
           </div>
@@ -528,37 +570,37 @@ function downloadSurat(id: number) {
       <!-- TAB 2: PRODUK UMKM -->
       <div v-if="activeTab === 'umkm'" class="space-y-4">
         <!-- Controls -->
-        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div class="bg-white rounded-xl p-4 border border-slate-200/80 flex flex-col sm:flex-row gap-3 justify-between items-center">
           <div class="relative w-full sm:w-80">
-            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
+            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
+            <Input
               v-model="umkmSearch"
               type="text"
-              class="w-full pl-10 pr-4 py-2 rounded-full border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+              class="w-full pl-10 pr-4 py-2.5 h-auto rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
               placeholder="Cari produk, kategori, pemilik..."
             />
           </div>
 
-          <button
-            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-950/20 transition-all w-full sm:w-auto justify-center"
+          <Button
+            class="rounded-lg bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-sm h-auto px-4 py-2.5 w-full sm:w-auto"
             @click="openAddModal('umkm')"
           >
             <Plus class="w-4 h-4" />
             <span>Tambah Produk UMKM</span>
-          </button>
+          </Button>
         </div>
 
         <!-- Table -->
-        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Nama Produk</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Kategori</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Harga</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Pemilik / Kontak</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Produk</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kategori</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemilik / Kontak</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -568,48 +610,49 @@ function downloadSurat(id: number) {
                   class="hover:bg-slate-50/60 transition-colors"
                 >
                   <td class="px-5 py-4">
-                    <div class="font-bold text-slate-900 text-sm">{{ u.nama_produk || u.namaProduk }}</div>
-                    <div class="text-xs text-slate-400 line-clamp-1 max-w-sm">{{ u.deskripsi }}</div>
+                    <div class="font-medium text-slate-900 text-sm">{{ u.nama_produk || u.namaProduk }}</div>
+                    <div class="text-sm text-slate-400 line-clamp-1 max-w-sm">{{ u.deskripsi }}</div>
                   </td>
                   <td class="px-5 py-4">
-                    <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200/60">
+                    <Badge class="rounded-md bg-emerald-50 text-emerald-800 text-xs font-medium border-emerald-200/60 hover:bg-emerald-50">
                       {{ u.kategori }}
-                    </span>
+                    </Badge>
                   </td>
-                  <td class="px-5 py-4 text-sm font-black text-emerald-800">
+                  <td class="px-5 py-4 text-sm font-semibold text-emerald-800">
                     {{ formatRupiah(u.harga) }}
                   </td>
-                  <td class="px-5 py-4 text-xs">
-                    <div class="font-bold text-slate-800">{{ u.pemilik }}</div>
+                  <td class="px-5 py-4 text-sm">
+                    <div class="font-medium text-slate-800">{{ u.pemilik }}</div>
                     <div class="font-mono text-slate-400">{{ u.no_wa_pemilik || u.noWaPemilik || '-' }}</div>
                   </td>
                   <td class="px-5 py-4 text-right">
-                    <div class="inline-flex items-center gap-1.5">
-                      <button
-                        class="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors"
-                        @click="openEditModal('umkm', u)"
-                        title="Edit Produk"
-                      >
-                        <Pencil class="w-4 h-4" />
-                      </button>
-                      <button
-                        class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
-                        @click="handleDelete('umkm', u.id)"
-                        title="Hapus Produk"
-                      >
-                        <Trash2 class="w-4 h-4" />
-                      </button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="icon" class="rounded-lg text-slate-600 hover:text-slate-900 h-8 w-8">
+                          <MoreVertical class="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem @click="openEditModal('umkm', u)">
+                          <Pencil class="w-3.5 h-3.5" />
+                          <span>Edit Produk</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" @click="handleDelete('umkm', u.id)">
+                          <Trash2 class="w-3.5 h-3.5" />
+                          <span>Hapus Produk</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               </tbody>
             </table>
 
             <div v-if="!filteredUmkm.length" class="text-center py-16 px-4">
-              <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <div class="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                 <ShoppingBag class="w-6 h-6" />
               </div>
-              <h3 class="font-bold text-slate-800 text-sm">Belum ada produk UMKM</h3>
+              <h3 class="font-semibold text-slate-800 text-sm">Belum ada produk UMKM</h3>
               <p class="text-xs text-slate-500 mt-1">Tambahkan produk kerajinan atau kuliner warga desa melalui tombol di atas.</p>
             </div>
           </div>
@@ -619,36 +662,36 @@ function downloadSurat(id: number) {
       <!-- TAB 3: PENGUMUMAN -->
       <div v-if="activeTab === 'pengumuman'" class="space-y-4">
         <!-- Controls -->
-        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div class="bg-white rounded-xl p-4 border border-slate-200/80 flex flex-col sm:flex-row gap-3 justify-between items-center">
           <div class="relative w-full sm:w-80">
-            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
+            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
+            <Input
               v-model="pengumumanSearch"
               type="text"
-              class="w-full pl-10 pr-4 py-2 rounded-full border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+              class="w-full pl-10 pr-4 py-2.5 h-auto rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
               placeholder="Cari judul atau isi pengumuman..."
             />
           </div>
 
-          <button
-            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-950/20 transition-all w-full sm:w-auto justify-center"
+          <Button
+            class="rounded-lg bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-sm h-auto px-4 py-2.5 w-full sm:w-auto"
             @click="openAddModal('pengumuman')"
           >
             <Plus class="w-4 h-4" />
             <span>Tambah Warta / Pengumuman</span>
-          </button>
+          </Button>
         </div>
 
         <!-- Table -->
-        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Judul Pengumuman</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Tanggal Agenda</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Isi Ringkas</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Judul Pengumuman</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Agenda</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Ringkas</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -657,42 +700,43 @@ function downloadSurat(id: number) {
                   :key="p.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4 font-bold text-slate-900 text-sm max-w-xs">
+                  <td class="px-5 py-4 font-medium text-slate-900 text-sm max-w-xs">
                     {{ p.judul }}
                   </td>
-                  <td class="px-5 py-4 text-xs font-semibold text-emerald-800 whitespace-nowrap">
+                  <td class="px-5 py-4 text-sm font-semibold text-emerald-800 whitespace-nowrap">
                     {{ formatTanggal(p.tanggal) }}
                   </td>
-                  <td class="px-5 py-4 text-xs text-slate-500 line-clamp-2 max-w-md">
+                  <td class="px-5 py-4 text-sm text-slate-500 line-clamp-2 max-w-md">
                     {{ p.konten }}
                   </td>
                   <td class="px-5 py-4 text-right whitespace-nowrap">
-                    <div class="inline-flex items-center gap-1.5">
-                      <button
-                        class="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors"
-                        @click="openEditModal('pengumuman', p)"
-                        title="Edit Pengumuman"
-                      >
-                        <Pencil class="w-4 h-4" />
-                      </button>
-                      <button
-                        class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
-                        @click="handleDelete('pengumuman', p.id)"
-                        title="Hapus Pengumuman"
-                      >
-                        <Trash2 class="w-4 h-4" />
-                      </button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" size="icon" class="rounded-lg text-slate-600 hover:text-slate-900 h-8 w-8">
+                          <MoreVertical class="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem @click="openEditModal('pengumuman', p)">
+                          <Pencil class="w-3.5 h-3.5" />
+                          <span>Edit Pengumuman</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" @click="handleDelete('pengumuman', p.id)">
+                          <Trash2 class="w-3.5 h-3.5" />
+                          <span>Hapus Pengumuman</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               </tbody>
             </table>
 
             <div v-if="!filteredPengumuman.length" class="text-center py-16 px-4">
-              <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <div class="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                 <Newspaper class="w-6 h-6" />
               </div>
-              <h3 class="font-bold text-slate-800 text-sm">Belum ada pengumuman</h3>
+              <h3 class="font-semibold text-slate-800 text-sm">Belum ada pengumuman</h3>
               <p class="text-xs text-slate-500 mt-1">Publikasikan informasi atau agenda desa terbaru melalui tombol di atas.</p>
             </div>
           </div>
@@ -701,28 +745,28 @@ function downloadSurat(id: number) {
 
       <!-- TAB 4: PESAN MASUK -->
       <div v-if="activeTab === 'pesan'" class="space-y-4">
-        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex justify-between items-center">
+        <div class="bg-white rounded-xl p-4 border border-slate-200/80 flex justify-between items-center">
           <div class="relative w-full sm:w-80">
-            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
+            <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 z-10" />
+            <Input
               v-model="pesanSearch"
               type="text"
-              class="w-full pl-10 pr-4 py-2 rounded-full border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+              class="w-full pl-10 pr-4 py-2.5 h-auto rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
               placeholder="Cari nama pengirim, kontak, isi..."
             />
           </div>
         </div>
 
-        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Nama Warga</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Kontak (HP/Email)</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Isi Pesan / Aspirasi</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Tanggal Masuk</th>
-                  <th class="px-5 py-3.5 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider text-right">Detail</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Warga</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kontak (HP/Email)</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Pesan / Aspirasi</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Masuk</th>
+                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Detail</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -731,21 +775,21 @@ function downloadSurat(id: number) {
                   :key="m.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4 font-bold text-slate-900 text-sm">
+                  <td class="px-5 py-4 font-medium text-slate-900 text-sm">
                     {{ m.nama }}
                   </td>
-                  <td class="px-5 py-4 text-xs font-mono text-emerald-800">
+                  <td class="px-5 py-4 text-sm font-mono text-emerald-800">
                     {{ m.kontak }}
                   </td>
-                  <td class="px-5 py-4 text-xs text-slate-600 max-w-xs truncate">
+                  <td class="px-5 py-4 text-sm text-slate-600 max-w-xs truncate">
                     {{ m.pesan }}
                   </td>
-                  <td class="px-5 py-4 text-xs text-slate-400 whitespace-nowrap">
+                  <td class="px-5 py-4 text-sm text-slate-400 whitespace-nowrap">
                     {{ formatTanggal(m.created_at || m.createdAt) }}
                   </td>
                   <td class="px-5 py-4 text-right">
                     <button
-                      class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                      class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                       @click="openDetailModal('pesan', m)"
                       title="Lihat Isi Pesan Lengkap"
                     >
@@ -757,46 +801,34 @@ function downloadSurat(id: number) {
             </table>
 
             <div v-if="!filteredPesan.length" class="text-center py-16 px-4">
-              <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <div class="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                 <MessageSquare class="w-6 h-6" />
               </div>
-              <h3 class="font-bold text-slate-800 text-sm">Tidak ada pesan masuk</h3>
+              <h3 class="font-semibold text-slate-800 text-sm">Tidak ada pesan masuk</h3>
               <p class="text-xs text-slate-500 mt-1">Aspirasi atau masukan dari warga akan ditampilkan pada daftar ini.</p>
             </div>
           </div>
         </div>
       </div>
-    </main>
+      </div>
+    </SidebarInset>
 
     <!-- Global Modal Dialog (Add, Edit, Detail) -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div
-          v-if="showModal"
-          class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
-          @click.self="showModal = false"
-        >
-          <div class="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 animate-fade-in">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 sticky top-0 bg-white z-10">
-              <h3 class="font-black text-slate-900 text-base">
-                {{ modalMode === 'detail' ? 'Rincian Data' : modalMode === 'add' ? 'Tambah Data Baru' : 'Edit Data' }}
-                {{ modalType === 'pengumuman' ? 'Pengumuman' : modalType === 'umkm' ? 'Produk UMKM' : modalType === 'surat' ? 'Surat Permohonan' : 'Pesan Warga' }}
-              </h3>
-              <button
-                class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
-                @click="showModal = false"
-              >
-                <X class="w-4 h-4" />
-              </button>
-            </div>
+    <Dialog :open="showModal" @update:open="showModal = $event">
+      <DialogContent :show-close-button="false" class="max-w-lg max-h-[90vh] overflow-y-auto rounded-xl p-0 gap-0 border border-slate-200 shadow-2xl">
+        <!-- Modal Header -->
+        <DialogHeader class="flex-row items-center justify-between px-6 py-5 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <DialogTitle class="font-semibold text-slate-900 text-base">
+            {{ modalMode === 'detail' ? 'Rincian Data' : modalMode === 'add' ? 'Tambah Data Baru' : 'Edit Data' }}
+            {{ modalType === 'pengumuman' ? 'Pengumuman' : modalType === 'umkm' ? 'Produk UMKM' : modalType === 'surat' ? 'Surat Permohonan' : 'Pesan Warga' }}
+          </DialogTitle>
+          <button
+            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
+            @click="showModal = false"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </DialogHeader>
 
             <!-- Modal Content -->
             <div class="px-6 py-6">
@@ -828,20 +860,20 @@ function downloadSurat(id: number) {
                 </div>
                 <div class="flex justify-between py-2 border-b border-slate-100">
                   <span class="text-slate-500 font-medium">Status Permohonan</span>
-                  <span :class="[getStatusColor(modalData.status), 'px-3 py-1 rounded-full text-xs font-extrabold']">
+                  <Badge :class="[getStatusColor(modalData.status), 'rounded-md text-xs font-extrabold']">
                     {{ modalData.status }}
-                  </span>
+                  </Badge>
                 </div>
                 <div class="py-2">
                   <span class="text-slate-500 font-medium block mb-1">Keperluan Pembuatan:</span>
-                  <p class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  <p class="p-3 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 leading-relaxed whitespace-pre-wrap">
                     {{ modalData.keperluan }}
                   </p>
                 </div>
 
                 <div v-if="modalData.status === 'Selesai'" class="pt-3">
                   <button
-                    class="w-full py-3 rounded-2xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md"
+                    class="w-full py-3 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md"
                     @click="downloadSurat(modalData.id)"
                   >
                     <Download class="w-4 h-4" />
@@ -866,7 +898,7 @@ function downloadSurat(id: number) {
                 </div>
                 <div class="py-2">
                   <span class="text-slate-500 font-medium block mb-1">Isi Pesan / Aspirasi:</span>
-                  <p class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 leading-relaxed whitespace-pre-wrap">
+                  <p class="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 leading-relaxed whitespace-pre-wrap">
                     {{ modalData.pesan }}
                   </p>
                 </div>
@@ -874,145 +906,145 @@ function downloadSurat(id: number) {
 
               <!-- Pengumuman Form -->
               <form v-if="modalMode !== 'detail' && modalType === 'pengumuman'" @submit.prevent="handleModalSubmit" class="space-y-4">
-                <div v-if="modalError" class="flex items-center gap-2 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                <div v-if="modalError" class="flex items-center gap-2 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
                   <AlertCircle class="w-4 h-4 shrink-0 text-rose-600" />
                   <span>{{ modalError }}</span>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Judul Warta / Pengumuman</label>
-                  <input
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Judul Warta / Pengumuman</Label>
+                  <Input
                     v-model="modalData.judul"
                     type="text"
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                    class="w-full h-auto px-4 py-2.5 rounded-xl border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                     placeholder="Contoh: Jadwal Pelayanan Administrasi Desa..."
                   />
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Agenda</label>
-                  <input
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Agenda</Label>
+                  <Input
                     v-model="modalData.tanggal"
                     type="date"
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                    class="w-full h-auto px-4 py-2.5 rounded-xl border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                   />
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Konten Pengumuman Lengkap</label>
-                  <textarea
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Konten Pengumuman Lengkap</Label>
+                  <Textarea
                     v-model="modalData.konten"
                     rows="5"
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none resize-y"
+                    class="w-full px-4 py-2.5 rounded-xl border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800 resize-y"
                     placeholder="Tuliskan isi pengumuman secara rinci..."
-                  ></textarea>
+                  />
                 </div>
 
-                <button
+                <Button
                   type="submit"
                   :disabled="modalLoading"
-                  class="w-full py-3.5 rounded-2xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  class="w-full h-auto py-3.5 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs shadow-md"
                 >
                   <Loader2 v-if="modalLoading" class="w-4 h-4 animate-spin" />
                   <span>{{ modalLoading ? 'Menyimpan...' : 'Simpan Pengumuman' }}</span>
-                </button>
+                </Button>
               </form>
 
               <!-- UMKM Form -->
               <form v-if="modalMode !== 'detail' && modalType === 'umkm'" @submit.prevent="handleModalSubmit" class="space-y-4">
-                <div v-if="modalError" class="flex items-center gap-2 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                <div v-if="modalError" class="flex items-center gap-2 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
                   <AlertCircle class="w-4 h-4 shrink-0 text-rose-600" />
                   <span>{{ modalError }}</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Produk</label>
-                    <input
+                    <Label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Produk</Label>
+                    <Input
                       v-model="modalData.nama_produk"
                       type="text"
-                      class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                      class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                       placeholder="Nama produk UMKM"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Harga (Rp)</label>
-                    <input
+                    <Label class="block text-xs font-bold text-slate-700 mb-1.5">Harga (Rp)</Label>
+                    <Input
                       v-model.number="modalData.harga"
                       type="number"
-                      class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                      class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                       placeholder="Contoh: 25000"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Kategori Produk</label>
-                  <select
-                    v-model="modalData.kategori"
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white outline-none focus:ring-2 focus:ring-emerald-800/20"
-                  >
-                    <option value="Makanan">Makanan</option>
-                    <option value="Kerajinan">Kerajinan</option>
-                    <option value="Hasil Tani">Hasil Tani</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Kategori Produk</Label>
+                  <Select v-model="modalData.kategori">
+                    <SelectTrigger class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs font-bold text-slate-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Makanan">Makanan</SelectItem>
+                      <SelectItem value="Kerajinan">Kerajinan</SelectItem>
+                      <SelectItem value="Hasil Tani">Hasil Tani</SelectItem>
+                      <SelectItem value="Lainnya">Lainnya</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Deskripsi Produk</label>
-                  <textarea
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Deskripsi Produk</Label>
+                  <Textarea
                     v-model="modalData.deskripsi"
                     rows="3"
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none resize-y"
+                    class="w-full px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800 resize-y"
                     placeholder="Keunggulan atau bahan produk..."
-                  ></textarea>
+                  />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Produsen / Pemilik</label>
-                    <input
+                    <Label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Produsen / Pemilik</Label>
+                    <Input
                       v-model="modalData.pemilik"
                       type="text"
-                      class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                      class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                       placeholder="Nama pemilik usaha"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">No. WhatsApp Pemilik</label>
-                    <input
+                    <Label class="block text-xs font-bold text-slate-700 mb-1.5">No. WhatsApp Pemilik</Label>
+                    <Input
                       v-model="modalData.no_wa_pemilik"
                       type="text"
-                      class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                      class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                       placeholder="Contoh: 081234567890"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Foto Produk (Opsional)</label>
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Foto Produk (Opsional)</Label>
                   <input
                     type="file"
                     accept="image/*"
-                    class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100"
+                    class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100"
                     @change="handleFotoChange"
                   />
                 </div>
 
-                <button
+                <Button
                   type="submit"
                   :disabled="modalLoading"
-                  class="w-full py-3.5 rounded-2xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  class="w-full h-auto py-3.5 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs shadow-md"
                 >
                   <Loader2 v-if="modalLoading" class="w-4 h-4 animate-spin" />
                   <span>{{ modalLoading ? 'Menyimpan...' : 'Simpan Produk UMKM' }}</span>
-                </button>
+                </Button>
               </form>
             </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-  </div>
+      </DialogContent>
+    </Dialog>
+  </SidebarProvider>
 </template>

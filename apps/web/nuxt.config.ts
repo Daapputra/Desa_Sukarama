@@ -5,11 +5,17 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxtjs/tailwindcss',
+    'shadcn-nuxt',
   ],
 
   tailwindcss: {
     configPath: 'tailwind.config.ts',
     cssPath: '~/assets/css/main.css',
+  },
+
+  shadcn: {
+    prefix: '',
+    componentDir: './app/components/ui',
   },
 
   runtimeConfig: {

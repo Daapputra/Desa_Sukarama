@@ -208,6 +208,39 @@ Perintah ini akan menyalakan server backend Fastify (`:3005`) dan server fronten
 
 ---
 
+## 🔀 Mode Hybrid: Live Preview Frontend (Dev Server + Docker)
+
+Kalau seluruh sistem (`db`, `api`, `web`) sudah jalan via Docker (`docker compose up`/`start`) tapi Anda mau mengedit tampilan frontend (`apps/web`) dan langsung lihat perubahannya (hot-reload) **tanpa** menunggu `docker compose up --build` tiap kali save file, gunakan alur ini:
+
+1. **Stop container `web`** saja (biarkan `db` & `api` tetap jalan di Docker) — supaya port 3000 bebas dipakai dev server:
+   ```bash
+   docker compose stop web
+   ```
+2. **Jalankan dev server Nuxt** di mesin lokal:
+   ```bash
+   npm run dev:web
+   ```
+   Buka `http://localhost:3000` — dev server ini otomatis konek ke backend API Docker di `http://127.0.0.1:3005`. Setiap file di `apps/web/app/**` yang disimpan akan langsung ter-refresh di browser (Vite HMR).
+3. **Selesai editing → matikan dev server** (`Ctrl+C`).
+4. **Build ulang image `web`** supaya perubahan permanen masuk ke container Docker (langkah ini WAJIB — lihat penjelasan di bawah):
+   ```bash
+   docker compose up --build -d web
+   ```
+5. (Opsional) Kembalikan `web` ke mode normal kalau langkah 4 belum sempat dijalankan tapi Anda ingin situs Docker tetap merespons versi lama sementara:
+   ```bash
+   docker compose start web
+   ```
+
+### ⚠️ Kenapa langkah 4 wajib dan gampang terlupa
+
+`apps/web/Dockerfile` melakukan build produksi Nuxt (`npm run build`) **sekali saat image di-build**, hasilnya berupa bundle statis (`.output/`) yang di-`COPY` ke image final. Container `web` **tidak** membaca ulang file source dari disk saat berjalan — beda dari dev server yang live. Artinya:
+- Selama Anda dev di `localhost:3000` (dev server), perubahan **tidak pernah** masuk ke container Docker.
+- Kalau lupa menjalankan `docker compose up --build -d web` di akhir, container Docker akan terus menyajikan versi *lama* tanpa error apa pun yang mengingatkan Anda — situs kelihatan jalan normal, hanya saja bukan versi terbaru.
+
+Claude Code memasang **hook pengingat otomatis** untuk kasus ini — lihat `.claude/settings.json` (`Stop` hook): setiap sesi Claude Code berakhir, hook mengecek apakah ada file di `apps/web` yang berubah (working tree atau staged) sejak commit terakhir. Kalau iya, akan muncul pesan pengingat untuk menjalankan `docker compose up --build -d web` sebelum menganggap pekerjaan selesai. Hook ini hanya **memperingatkan**, bukan menjalankan build otomatis (build Nuxt bisa memakan waktu & resource, jadi keputusan tetap di tangan Anda).
+
+---
+
 ## 📦 Skrip Perintah Monorepo
 
 | Perintah | Deskripsi |

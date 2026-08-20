@@ -24,6 +24,16 @@
     --input: 214 20% 90%;
     --ring: 142 76% 22%;
     --radius: 0.75rem;
+
+    /* Admin sidebar — reuses the same tokens as the rest of the app (light, same brand accent) */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 215 25% 15%;
+    --sidebar-primary: 142 76% 22%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 45% 94%;
+    --sidebar-accent-foreground: 142 76% 22%;
+    --sidebar-border: 214 20% 90%;
+    --sidebar-ring: 142 76% 22%;
   }
 
   * {

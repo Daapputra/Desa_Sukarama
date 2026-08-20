@@ -20,7 +20,7 @@ npm run typecheck            # tsc build (api) + tsc --noEmit against .nuxt/tsco
 npm run db:push              # drizzle-kit push (apps/api)
 npm run db:seed              # seed admin account + dummy data (apps/api/src/db/seed.ts)
 npm run db:studio            # drizzle-kit studio
-npm run import:penduduk      # import resident (NIK) data from apps/uploads/*.xlsx into `penduduk` table
+npm run import:penduduk      # import resident (NIK) data from uploads/*.xlsx (repo root) into `penduduk` table
 ```
 
 Backend-only scripts (run with `npm --prefix apps/api run <script>`):
@@ -43,6 +43,10 @@ docker compose logs -f api     # tail one service's logs
 Services: `db` (postgres:16-alpine, host port from `POSTGRES_PORT`, default 5434), `api` (Fastify, :3005), `web` (Nuxt, :3000), `pgweb` (DB GUI, :8081). `api`'s container also bind-mounts `./apps/web/public/templates` so it can read `.docx` letter templates without a rebuild.
 
 Local dev without Docker requires Postgres reachable at the URL in `.env`/`apps/api/.env` (`DATABASE_URL`).
+
+### Hybrid workflow: live-editing `apps/web` while the rest runs in Docker
+
+`apps/web`'s Dockerfile builds a production Nuxt/Nitro bundle at image-build time and copies only `.output/` into the runtime image — the running `web` container never re-reads source files, so editing `apps/web` while `docker compose up`/`start` is running has zero visible effect until the image is rebuilt. To iterate with hot-reload against a Docker-hosted `api`/`db`: `docker compose stop web`, then `npm run dev:web` (serves `:3000` locally, hits `api` at `127.0.0.1:3005` same as the container did), then `Ctrl+C` when done. **`docker compose up --build -d web` is required afterward** to make changes stick in Docker — there is no file-watching or bind-mount for `apps/web` source, so this step is easy to forget (the stale container keeps serving the old build with no error). A `Stop` hook in `.claude/settings.json` reminds about this when `apps/web` has uncommitted changes at the end of a Claude Code session; see README.md § "Mode Hybrid" for the full user-facing walkthrough.
 
 ## Architecture
 

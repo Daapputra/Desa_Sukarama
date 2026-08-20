@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MessageCircle, X, Send, Bot } from 'lucide-vue-next'
+import { X, Send } from 'lucide-vue-next'
 
 interface ChatMessage {
   id: number
@@ -69,15 +69,15 @@ function sendMessage() {
     <!-- Floating Action Button -->
     <div class="fixed bottom-6 right-6 z-50">
       <button
-        class="relative w-14 h-14 rounded-full bg-emerald-900 hover:bg-emerald-800 active:scale-95 hover:scale-105 text-white shadow-lg shadow-emerald-950/25 flex items-center justify-center transition-all duration-200"
+        class="relative w-16 h-16 flex items-center justify-center active:scale-95 hover:scale-105 transition-all duration-200"
         :aria-label="isOpen ? 'Tutup chat' : 'Buka chat asisten'"
         @click="togglePanel"
       >
-        <X v-if="isOpen" class="w-6 h-6" />
-        <MessageCircle v-else class="w-6 h-6" />
+        <X v-if="isOpen" class="w-8 h-8 text-emerald-900 drop-shadow-md" />
+        <img v-else src="/images/chatbot-icon.png" alt="Asisten Desa" class="w-16 h-16 object-contain drop-shadow-lg" />
         <span
           v-if="!isOpen"
-          class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white"
+          class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white"
         ></span>
       </button>
     </div>
@@ -94,13 +94,13 @@ function sendMessage() {
       >
         <div
           v-if="isOpen"
-          class="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-8rem)] bg-white rounded-3xl shadow-2xl shadow-slate-950/20 border border-slate-200/80 flex flex-col overflow-hidden"
+          class="fixed bottom-24 right-6 z-50 w-[440px] max-w-[calc(100vw-2rem)] h-[680px] max-h-[calc(100vh-6rem)] bg-white rounded-3xl shadow-2xl shadow-slate-950/20 border border-slate-200/80 flex flex-col overflow-hidden"
         >
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/60">
-                <Bot class="w-5 h-5" />
+              <div class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center border border-slate-200 overflow-hidden">
+                <img src="/images/chatbot-icon.png" alt="Asisten Desa" class="w-7 h-7 object-contain" />
               </div>
               <div>
                 <div class="font-bold text-slate-900 text-sm">Asisten Desa</div>
@@ -130,7 +130,7 @@ function sendMessage() {
               <div
                 class="max-w-[80%] px-4 py-2.5 text-sm shadow-sm"
                 :class="msg.role === 'user'
-                  ? 'bg-emerald-900 text-white rounded-2xl rounded-tr-sm'
+                  ? 'bg-white border border-slate-300 text-slate-800 rounded-2xl rounded-tr-sm'
                   : 'bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-sm'"
               >
                 {{ msg.text }}
@@ -149,7 +149,7 @@ function sendMessage() {
               @keyup.enter="sendMessage"
             />
             <button
-              class="w-10 h-10 shrink-0 rounded-full bg-emerald-900 hover:bg-emerald-800 disabled:bg-slate-200 disabled:text-slate-400 text-white flex items-center justify-center transition-colors"
+              class="w-10 h-10 shrink-0 rounded-full bg-white border border-slate-300 hover:bg-slate-50 disabled:bg-slate-200 disabled:text-slate-400 text-slate-800 flex items-center justify-center transition-colors"
               :disabled="!draft.trim()"
               aria-label="Kirim pesan"
               @click="sendMessage"

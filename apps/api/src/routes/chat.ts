@@ -4,7 +4,18 @@ import { db } from '../db/index.js'
 import { pengumuman } from '../db/schema.js'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free'
+
+// Model gratis di OpenRouter berbagi kuota upstream dan sering kena 429 sesaat.
+// Kirim sebagai daftar (bukan satu model) supaya OpenRouter otomatis coba model
+// berikutnya kalau yang pertama sedang penuh — jauh lebih andal daripada satu model saja.
+const FALLBACK_MODELS = [
+  'openai/gpt-oss-20b:free',
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+]
+const MODELS = process.env.OPENROUTER_MODEL
+  ? [process.env.OPENROUTER_MODEL, ...FALLBACK_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)]
+  : FALLBACK_MODELS
 const MAX_MESSAGE_LENGTH = 1000
 const MAX_HISTORY_TURNS = 6
 
@@ -64,12 +75,13 @@ ${CONTACT_INFO}
 ## Pengumuman terbaru
 ${pengumumanText}
 
-## Aturan penting
-- Jawab singkat, ramah, dan dalam Bahasa Indonesia.
-- Kalau pertanyaan di luar topik desa (bukan soal layanan surat, pengumuman, kontak, atau UMKM desa), tolak dengan sopan dan arahkan kembali ke topik desa.
+## Cara menjawab
+- Ngobrol senatural dan seramah mungkin, seperti petugas desa yang membantu langsung — bukan seperti robot yang kaku atau template.
+- Kalau kamu TIDAK TAHU jawabannya (tidak ada di informasi atas, atau di luar hal yang kamu pahami), akui terus terang "maaf, saya belum punya info soal itu" lalu arahkan ke kontak kantor desa di atas. JANGAN mengarang jawaban, apalagi soal nomor surat, status pengajuan, atau jadwal yang tidak tercantum di atas.
+- Kalau pertanyaan di luar topik desa sama sekali (misal soal berita nasional, hiburan, dll), boleh jawab singkat dengan sopan lalu arahkan kembali ke topik layanan desa — tidak perlu menolak secara kaku, cukup natural seperti obrolan biasa.
 - Jangan pernah meminta warga mengirimkan NIK, No. KK, atau data pribadi lain lewat chat ini — arahkan mereka ke halaman "Layanan" resmi untuk pengajuan yang butuh data pribadi.
-- Jangan mengarang informasi (nomor surat, status pengajuan, jadwal) yang tidak ada di atas — kalau tidak tahu, arahkan untuk menghubungi kantor desa langsung.
-- Jangan memberi nasihat hukum/keuangan personal, hanya info umum layanan desa.`
+- Jangan memberi nasihat hukum/keuangan personal, hanya info umum layanan desa.
+- Jawab dalam Bahasa Indonesia, singkat dan jelas (tidak perlu bertele-tele).`
 }
 
 export async function chatRoutes(fastify: FastifyInstance) {
@@ -116,12 +128,12 @@ export async function chatRoutes(fastify: FastifyInstance) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ model: MODEL, messages }),
+        body: JSON.stringify({ models: MODELS, messages }),
       })
 
       if (!res.ok) {
         fastify.log.error(`OpenRouter error ${res.status}: ${await res.text()}`)
-        return reply.status(502).send({ error: 'Asisten sedang tidak bisa dihubungi, silakan coba lagi nanti.' })
+        return reply.status(502).send({ error: 'Maaf, asisten sedang sibuk. Coba tanya lagi sebentar lagi ya.' })
       }
 
       const data = await res.json() as any

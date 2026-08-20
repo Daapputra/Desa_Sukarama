@@ -78,7 +78,7 @@ const year = new Date().getFullYear()
             </li>
             <li class="flex items-center gap-2.5">
               <Phone class="w-4 h-4 text-emerald-400 shrink-0" />
-              <span class="text-slate-400">(0263) 123-4567 / 0812-3456-7890</span>
+              <span class="text-slate-400">+62 858-1779-3254</span>
             </li>
             <li class="flex items-center gap-2.5">
               <Clock class="w-4 h-4 text-emerald-400 shrink-0" />

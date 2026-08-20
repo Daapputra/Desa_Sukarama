@@ -41,10 +41,65 @@ async function handleSubmit() {
 
 const contactInfo = [
   { icon: MapPin, title: 'Alamat Kantor Desa', desc: 'Jl. Raya Sukarama No. 01, Kec. Bojongpicung, Kab. Cianjur, Jawa Barat 43283' },
-  { icon: Phone, title: 'Telepon / WhatsApp Layanan', desc: '(0263) 123-4567 / 0812-3456-7890' },
-  { icon: Mail, title: 'Email Resmi', desc: 'desa.sukarama@cianjurkab.go.id' },
+  { icon: Phone, title: 'Telepon / WhatsApp Layanan', desc: '+62 858-1779-3254' },
+  { icon: Mail, title: 'Email Resmi', desc: 'desasukarama1122@yahoo.com' },
   { icon: Clock, title: 'Jam Pelayanan Kantor', desc: 'Senin – Jumat: 08.00 – 15.00 WIB\nSabtu – Minggu & Hari Libur: Tutup' },
 ]
+
+// Scroll reveal directive with multiple animation types
+const vScrollReveal = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined') return;
+    const type = binding.value?.type || 'up'
+    let delay = binding.value?.delay || 0
+    const stagger = binding.value?.stagger
+
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+
+    if (stagger) {
+      Array.from(el.children).forEach((c: any, i) => {
+        c.style.opacity = '0'
+        c.style.transform = 'translateY(120px)'
+        c.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}`
+        c.style.transitionDelay = `${delay + (i * 150)}ms`
+      })
+    } else {
+      el.style.opacity = '0'
+      el.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}, filter 1s ease`
+      el.style.filter = 'blur(8px)'
+      if (delay) el.style.transitionDelay = `${delay}ms`
+
+      switch (type) {
+        case 'left': el.style.transform = 'translateX(-120px)'; break
+        case 'right': el.style.transform = 'translateX(120px)'; break
+        case 'zoom': el.style.transform = 'scale(0.85) translateY(40px)'; break
+        default: el.style.transform = 'translateY(120px)'
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(() => {
+          if (stagger) {
+            Array.from(el.children).forEach((c: any) => {
+              c.style.opacity = '1'
+              c.style.transform = 'translate(0)'
+            })
+          } else {
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0) scale(1)'
+            el.style.filter = 'blur(0)'
+          }
+        })
+        observer.unobserve(el)
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' })
+    
+    setTimeout(() => {
+      observer.observe(el)
+    }, 50)
+  }
+}
 </script>
 
 <template>
@@ -58,10 +113,10 @@ const contactInfo = [
           <ChevronRight class="w-3 h-3" />
           <span>Kontak & Aspirasi</span>
         </div>
-        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3">
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3" v-scroll-reveal="{ type: 'zoom' }">
           Hubungi Pemerintah Desa
         </h1>
-        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed" v-scroll-reveal="{ delay: 150 }">
           Kirim saran, aspirasi, atau pertanyaan langsung ke perangkat Desa Sukarama. Kami siap melayani dengan sepenuh hati.
         </p>
       </div>
@@ -72,7 +127,7 @@ const contactInfo = [
       <div class="container-app">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <!-- Information & Map (Left Col) -->
-          <div class="lg:col-span-5 space-y-6">
+          <div class="lg:col-span-5 space-y-6" v-scroll-reveal="{ type: 'right' }">
             <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
               <h2 class="text-lg font-black text-slate-900 tracking-tight mb-6 pb-4 border-b border-slate-100">
                 Informasi & Saluran Kontak
@@ -121,7 +176,7 @@ const contactInfo = [
           </div>
 
           <!-- Contact / Aspiration Form (Right Col) -->
-          <div class="lg:col-span-7">
+          <div class="lg:col-span-7" v-scroll-reveal="{ type: 'left' }">
             <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm">
               <h2 class="text-xl font-black text-slate-900 tracking-tight mb-2">
                 Formulir Pesan & Aspirasi

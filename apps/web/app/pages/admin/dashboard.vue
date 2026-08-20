@@ -395,8 +395,8 @@ function confirmDownloadSurat() {
             </p>
           </div>
           <div class="hidden md:flex flex-col items-end leading-tight self-start sm:self-auto">
-            <span class="text-sm font-semibold text-slate-700 tabular-nums">{{ formattedTime }}</span>
-            <span class="text-[11px] text-slate-400">{{ formattedDate }}</span>
+            <span class="text-lg font-bold text-slate-800 tabular-nums">{{ formattedTime }}</span>
+            <span class="text-xs font-medium text-slate-500">{{ formattedDate }}</span>
           </div>
         </div>
 
@@ -539,12 +539,12 @@ function confirmDownloadSurat() {
             <table class="w-full min-w-[900px] text-left table-fixed">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="w-[15%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">No. Ref</th>
-                  <th class="w-[23%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemohon / NIK</th>
-                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jenis Dokumen</th>
-                  <th class="w-[18%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status & Aksi Cepat</th>
-                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tgl Pengajuan</th>
-                  <th class="w-[12%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="w-[14%] px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">No. Ref</th>
+                  <th class="w-[24%] px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemohon / NIK</th>
+                  <th class="w-[15%] px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jenis Dokumen</th>
+                  <th class="w-[20%] px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status & Aksi Cepat</th>
+                  <th class="w-[15%] px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tgl Pengajuan</th>
+                  <th class="w-[12%] px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -553,23 +553,23 @@ function confirmDownloadSurat() {
                   :key="s.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4 truncate">
+                  <td class="px-4 py-3 truncate">
                     <span class="font-mono text-sm font-medium text-slate-700 block truncate">{{ s.ref_number || s.refNumber }}</span>
                     <span class="text-[10px] text-slate-400">ID: #{{ s.id }}</span>
                   </td>
-                  <td class="px-5 py-4 truncate">
+                  <td class="px-4 py-3 truncate">
                     <div class="font-medium text-slate-900 text-sm truncate">{{ s.nama }}</div>
-                    <div class="text-sm text-slate-500 font-mono truncate">NIK: {{ s.nik }}</div>
+                    <div class="text-xs text-slate-500 font-mono truncate">NIK: {{ s.nik }}</div>
                   </td>
-                  <td class="px-5 py-4 truncate">
-                    <span class="inline-block max-w-full truncate text-sm font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  <td class="px-4 py-3 truncate">
+                    <span class="inline-block max-w-full truncate text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-1 rounded-md">
                       {{ s.jenis_surat || s.jenisSurat }}
                     </span>
                   </td>
-                  <td class="px-5 py-4">
+                  <td class="px-4 py-3">
                     <Select :model-value="s.status" @update:model-value="updateSuratStatus(s.id, $event as string)">
                       <SelectTrigger
-                        class="text-sm px-3 py-1.5 h-auto rounded-lg border font-medium w-auto"
+                        class="text-xs px-2.5 py-1.5 h-auto rounded-md border font-medium w-auto"
                         :class="s.status === 'Selesai' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : s.status === 'Diproses' ? 'bg-blue-50 text-blue-800 border-blue-300' : 'bg-amber-50 text-amber-800 border-amber-300'"
                       >
                         <SelectValue />
@@ -581,27 +581,18 @@ function confirmDownloadSurat() {
                       </SelectContent>
                     </Select>
                   </td>
-                  <td class="px-5 py-4 text-sm text-slate-500">
+                  <td class="px-4 py-3 text-xs text-slate-500">
                     {{ formatTanggal(s.created_at || s.createdAt) }}
                   </td>
-                  <td class="px-5 py-4 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger as-child>
-                        <Button variant="ghost" size="icon" class="rounded-lg text-slate-600 hover:text-slate-900 h-8 w-8">
-                          <MoreVertical class="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem @click="openDetailModal('surat', s)">
-                          <Eye class="w-3.5 h-3.5" />
-                          <span>Lihat Detail Permohonan</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem v-if="s.status === 'Selesai'" @click="downloadSurat(s.id)">
-                          <Printer class="w-3.5 h-3.5" />
-                          <span>Cetak & Download (.docx)</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-1.5">
+                      <Button variant="outline" size="icon" class="h-7 w-7 rounded-md text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 transition-colors shrink-0" title="Lihat Detail Permohonan" @click="openDetailModal('surat', s)">
+                        <Eye class="w-3.5 h-3.5" />
+                      </Button>
+                      <Button v-if="s.status === 'Selesai'" variant="outline" size="icon" class="h-7 w-7 rounded-md text-emerald-700 border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 hover:border-emerald-300 transition-colors shrink-0" title="Cetak & Download (.docx)" @click="downloadSurat(s.id)">
+                        <Printer class="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               </tbody>

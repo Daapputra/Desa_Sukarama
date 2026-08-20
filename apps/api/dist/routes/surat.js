@@ -243,9 +243,14 @@ export async function suratRoutes(fastify) {
             .where(eq(suratPengajuan.id, parseInt(id)));
         return { message: `Status diperbarui menjadi "${status}"` };
     });
-    // GET /api/surat/:id/download-surat (public)
+    // GET /api/surat/:id/download-surat (public — completed letters are downloadable
+    // without login, but a custom nomor_surat override is only honored for admins;
+    // otherwise anyone could stamp an arbitrary official reference number onto a
+    // real village letter just by adding a query param.)
     fastify.get('/api/surat/:id/download-surat', async (request, reply) => {
         const { id } = request.params;
+        const authToken = request.headers['authorization']?.replace('Bearer ', '');
+        const isAdmin = !!(authToken && getToken(authToken));
         const [surat] = await db
             .select()
             .from(suratPengajuan)
@@ -278,8 +283,11 @@ export async function suratRoutes(fastify) {
             templateName = 'SKU.docx';
         }
         else {
-            // Default fallback jika tidak match
-            templateName = 'Surat_Domisili.docx';
+            // No silent fallback: generating the wrong official letter is worse than
+            // failing loudly. All four jenis_surat values offered on the public form
+            // match one of the branches above — reaching here means a jenis_surat
+            // was introduced (or edited into the database) without a matching template.
+            return reply.status(400).send({ error: `Tidak ada template dokumen untuk jenis surat "${surat.jenisSurat}"` });
         }
         function findTemplatePath(fileName) {
             const candidates = [
@@ -361,6 +369,7 @@ export async function suratRoutes(fastify) {
                 return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
             };
             const toUpper = (str) => (str || '').toString().toUpperCase();
+            const customNomorSurat = isAdmin ? request.query.nomor_surat : undefined;
             // Render dokumen dengan data
             doc.render({
                 nama: toUpper(namaPemohon),
@@ -422,8 +431,8 @@ export async function suratRoutes(fastify) {
                 tanggal_berlaku: tglBerlaku,
                 TANGGAL_BERLAKU: tglBerlaku,
                 tanggalBerlaku: tglBerlaku,
-                nomor_surat: request.query.nomor_surat || surat.refNumber,
-                NOMOR_SURAT: request.query.nomor_surat || surat.refNumber,
+                nomor_surat: customNomorSurat || surat.refNumber,
+                NOMOR_SURAT: customNomorSurat || surat.refNumber,
                 jabatan_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
                 JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'SEKRETARIS DESA' : 'KEPALA DESA',
                 nama_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
@@ -447,11 +456,14 @@ export async function suratRoutes(fastify) {
             return reply.send(buf);
         }
         catch (error) {
+            // Logged server-side only — this route is public (no auth), so the response
+            // must never include the stack trace (file paths, internals) or it leaks to
+            // anyone who can reach this endpoint.
             console.error('Error generating document:', error);
             const details = error.properties && error.properties.errors
                 ? error.properties.errors.map((e) => e.message).join(', ')
                 : error.message;
-            return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details, stack: error.stack });
+            return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details });
         }
     });
 }

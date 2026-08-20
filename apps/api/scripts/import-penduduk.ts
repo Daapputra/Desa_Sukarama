@@ -1,6 +1,7 @@
 import xlsx from 'xlsx'
 import path from 'path'
 import fs from 'fs'
+import { sql } from 'drizzle-orm'
 import { db, pool } from '../src/db/index.js'
 import { penduduk } from '../src/db/schema.js'
 
@@ -84,13 +85,27 @@ async function importPenduduk() {
   for (let i = 0; i < validRecords.length; i += BATCH_SIZE) {
     const batch = validRecords.slice(i, i + BATCH_SIZE)
     
+    // `excluded.<column>` refers to each conflicting row's own incoming values —
+    // using a fixed JS value here (e.g. batch[0].noKk) would apply that single
+    // record's data to every conflicting row in the batch instead of each row's
+    // own data, silently overwriting up to BATCH_SIZE-1 other residents on re-import.
     await db.insert(penduduk)
       .values(batch)
       .onConflictDoUpdate({
         target: penduduk.nik,
         set: {
-          noKk: batch[0].noKk, // fallback field for query syntax
-          namaLengkap: batch[0].namaLengkap,
+          noKk: sql`excluded.no_kk`,
+          namaLengkap: sql`excluded.nama_lengkap`,
+          jenisKelamin: sql`excluded.jenis_kelamin`,
+          tempatLahir: sql`excluded.tempat_lahir`,
+          tanggalLahir: sql`excluded.tanggal_lahir`,
+          agama: sql`excluded.agama`,
+          pendidikan: sql`excluded.pendidikan`,
+          jenisPekerjaan: sql`excluded.jenis_pekerjaan`,
+          statusPerkawinan: sql`excluded.status_perkawinan`,
+          alamat: sql`excluded.alamat`,
+          rt: sql`excluded.rt`,
+          rw: sql`excluded.rw`,
         }
       })
     

@@ -437,8 +437,5 @@ function getWhatsappUrl(p: any): string {
         </div>
       </div>
     </section>
-
-    <!-- Chatbot Asisten Warga (tampilan saja, belum terhubung backend) -->
-    <ChatWidget />
   </div>
 </template>

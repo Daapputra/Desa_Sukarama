@@ -94,8 +94,35 @@ export async function seedDatabase() {
           noWaPemilik: '6281234567893',
           fotoPath: '/images/products/gula-aren.jpg',
         },
+        {
+          namaProduk: 'Kukumbul (Pelampung Pancing)',
+          harga: 5000,
+          kategori: 'Kerajinan',
+          deskripsi: 'Kerajinan pelampung pancing (kukumbul) buatan tangan berkualitas.',
+          pemilik: 'Pengrajin Kukumbul',
+          noWaPemilik: '6281573276932',
+          fotoPath: '/images/kukumbul.jpeg',
+        },
+        {
+          namaProduk: 'Doran Pacul Kayu Jati',
+          harga: 45000,
+          kategori: 'Kerajinan',
+          deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.',
+          pemilik: 'Pengrajin Kayu Sukarama',
+          noWaPemilik: '6285943097900',
+          fotoPath: '/images/doranpacul.jpeg',
+        },
+        {
+          namaProduk: 'Sapu Injuk Tradisional',
+          harga: 25000,
+          kategori: 'Kerajinan',
+          deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.',
+          pemilik: 'Perajin Injuk Desa',
+          noWaPemilik: '6283817916016',
+          fotoPath: '/images/sapu injuk.jpeg',
+        },
       ])
-      console.log('✅ Seed UMKM berhasil (4 data)')
+      console.log('✅ Seed UMKM berhasil (7 data)')
     }
 
     console.log('✅ Database Postgres siap (Drizzle ORM)')

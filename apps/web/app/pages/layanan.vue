@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   ChevronRight, Search, FileText, CheckCircle2, AlertCircle, Loader2, Download,
-  Upload, UserCheck, ShieldCheck, Building2, FileCheck2, Sparkles, FileQuestion, Check
+  Upload, UserCheck, ShieldCheck, Building2, FileCheck2, Sparkles, FileQuestion, Check, X
 } from 'lucide-vue-next'
 import { formatTanggal, getStatusColor } from '~/utils/format'
 
@@ -43,6 +43,7 @@ const form = reactive({
   bidang_usaha: '',
   alamat_usaha: '',
   lama_usaha: '',
+  program_usaha: false,
   penandatangan: 'Kepala Desa',
   dokumen: null as File | null,
 })
@@ -124,47 +125,54 @@ const submitting = ref(false)
 const submitResult = ref<{ ref_number: string } | null>(null)
 const submitError = ref('')
 
+let errorTimeout: any = null
+function showError(msg: string) {
+  submitError.value = msg
+  if (errorTimeout) clearTimeout(errorTimeout)
+  errorTimeout = setTimeout(() => { submitError.value = '' }, 4000)
+}
+
 async function handleSubmit() {
   submitError.value = ''
   if (!form.nama || !form.nik || !form.no_kk || !form.jenis_surat || !form.keperluan || !form.no_wa) {
-    submitError.value = 'Mohon lengkapi semua kolom wajib bertanda bintang (*)'
+    showError('Mohon lengkapi semua kolom wajib bertanda bintang (*)')
     return
   }
 
   if (form.nik.length < 16) {
-    submitError.value = 'NIK harus berjumlah 16 digit angka'
+    showError('NIK harus berjumlah 16 digit angka')
     return
   }
 
   if (form.no_kk.length < 16) {
-    submitError.value = 'Nomor KK harus berjumlah 16 digit angka'
+    showError('Nomor KK harus berjumlah 16 digit angka')
     return
   }
 
   if (nikFound.value === false) {
     if (!form.tempat_lahir || !form.tanggal_lahir || !form.jenis_kelamin || !form.agama || !form.pekerjaan || !form.alamat) {
-      submitError.value = 'NIK Anda baru, mohon lengkapi biodata kependudukan tambahan'
+      showError('NIK Anda baru, mohon lengkapi biodata kependudukan tambahan')
       return
     }
   }
 
   if (form.jenis_surat === 'Surat Beda Nama') {
     if (!form.nama_kk || !form.nama_ktp) {
-      submitError.value = 'Nama di KK dan Nama di KTP wajib diisi untuk Surat Beda Nama'
+      showError('Nama di KK dan Nama di KTP wajib diisi untuk Surat Beda Nama')
       return
     }
   }
 
   if (form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu') {
     if (!form.nama_program || !form.tahun_program) {
-      submitError.value = 'Nama Program dan Tahun Program wajib diisi'
+      showError('Nama Program dan Tahun Program wajib diisi')
       return
     }
   }
 
   if (form.jenis_surat === 'Surat Keterangan Usaha') {
     if (!form.bidang_usaha || !form.alamat_usaha || !form.lama_usaha) {
-      submitError.value = 'Bidang usaha, alamat usaha, dan lama usaha wajib diisi'
+      showError('Bidang usaha, alamat usaha, dan lama usaha wajib diisi')
       return
     }
   }
@@ -187,6 +195,7 @@ async function handleSubmit() {
     if (form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu') {
       fd.append('nama_program', form.nama_program)
       fd.append('tahun_program', form.tahun_program)
+      fd.append('program_usaha', form.program_usaha ? 'true' : 'false')
       fd.append('nama_usaha', form.nama_usaha)
       fd.append('sektor_usaha', form.sektor_usaha)
       fd.append('nomor_kontak', form.nomor_kontak)
@@ -272,6 +281,61 @@ const steps = [
   { num: '3', title: 'Verifikasi & TTD', desc: 'Diproses online oleh perangkat desa' },
   { num: '4', title: 'Unduh Dokumen', desc: 'Langsung download file Word (.docx)' },
 ]
+
+// Scroll reveal directive with multiple animation types
+const vScrollReveal = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined') return;
+    const type = binding.value?.type || 'up'
+    let delay = binding.value?.delay || 0
+    const stagger = binding.value?.stagger
+
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+
+    if (stagger) {
+      Array.from(el.children).forEach((c: any, i) => {
+        c.style.opacity = '0'
+        c.style.transform = 'translateY(120px)'
+        c.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}`
+        c.style.transitionDelay = `${delay + (i * 150)}ms`
+      })
+    } else {
+      el.style.opacity = '0'
+      el.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}, filter 1s ease`
+      el.style.filter = 'blur(8px)'
+      if (delay) el.style.transitionDelay = `${delay}ms`
+
+      switch (type) {
+        case 'left': el.style.transform = 'translateX(-120px)'; break
+        case 'right': el.style.transform = 'translateX(120px)'; break
+        case 'zoom': el.style.transform = 'scale(0.85) translateY(40px)'; break
+        default: el.style.transform = 'translateY(120px)'
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(() => {
+          if (stagger) {
+            Array.from(el.children).forEach((c: any) => {
+              c.style.opacity = '1'
+              c.style.transform = 'translate(0)'
+            })
+          } else {
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0) scale(1)'
+            el.style.filter = 'blur(0)'
+          }
+        })
+        observer.unobserve(el)
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' })
+    
+    setTimeout(() => {
+      observer.observe(el)
+    }, 50)
+  }
+}
 </script>
 
 <template>
@@ -285,10 +349,10 @@ const steps = [
           <ChevronRight class="w-3 h-3" />
           <span>Layanan Surat</span>
         </div>
-        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3">
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3" v-scroll-reveal="{ type: 'zoom' }">
           Layanan Administrasi Surat Digital
         </h1>
-        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed" v-scroll-reveal="{ delay: 150 }">
           Pengajuan surat keterangan desa secara mandiri dari rumah dengan sistem cerdas terhubung ke data kependudukan resmi.
         </p>
       </div>
@@ -298,7 +362,7 @@ const steps = [
     <section class="py-10 md:py-14">
       <div class="container-app">
         <!-- Steps Overview -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12" v-scroll-reveal="{ stagger: true }">
           <div
             v-for="step in steps"
             :key="step.num"
@@ -339,7 +403,7 @@ const steps = [
         </div>
 
         <!-- TAB 1: AJUKAN SURAT -->
-        <div v-if="activeTab === 'ajukan'" class="max-w-3xl mx-auto">
+        <div v-if="activeTab === 'ajukan'" class="max-w-3xl mx-auto" v-scroll-reveal="{ type: 'up' }">
           <!-- Success Card -->
           <div v-if="submitResult" class="bg-white rounded-3xl border border-emerald-200 p-8 sm:p-12 text-center shadow-xl shadow-emerald-950/5 animate-fade-in-up">
             <div class="w-18 h-18 w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-5 shadow-inner">
@@ -389,10 +453,19 @@ const steps = [
             </div>
 
             <!-- Error Banner -->
-            <div v-if="submitError" class="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs mb-6 animate-fade-in">
-              <AlertCircle class="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-              <span>{{ submitError }}</span>
-            </div>
+            <ClientOnly>
+              <Teleport to="body">
+                <div v-if="submitError" class="fixed bottom-10 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
+                  <div @click="submitError = ''" class="pointer-events-auto w-full max-w-sm flex items-start justify-between gap-3 p-4 rounded-2xl bg-rose-600 text-white text-xs shadow-2xl shadow-rose-900/40 cursor-pointer hover:bg-rose-700 transition-all animate-fade-in-up animate-float">
+                    <div class="flex items-start gap-3">
+                      <AlertCircle class="w-5 h-5 shrink-0 mt-0.5" />
+                      <span class="leading-relaxed font-semibold">{{ submitError }}</span>
+                    </div>
+                    <X class="w-4 h-4 shrink-0 opacity-70 hover:opacity-100" />
+                  </div>
+                </div>
+              </Teleport>
+            </ClientOnly>
 
             <!-- NIK & Autofill Status -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
@@ -606,6 +679,28 @@ const steps = [
                   <label class="block text-xs font-semibold text-slate-700 mb-1">Tahun Program <span class="text-rose-500">*</span></label>
                   <input v-model="form.tahun_program" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="2026">
                 </div>
+                
+                <div class="sm:col-span-2 mt-1 pt-3 border-t border-emerald-200/60 flex items-center gap-3">
+                  <input type="checkbox" id="is_usaha" v-model="form.program_usaha" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                  <label for="is_usaha" class="text-xs font-bold text-emerald-800 uppercase tracking-wide cursor-pointer select-none">
+                    Program Ini Terkait Bantuan/Pembinaan Usaha
+                  </label>
+                </div>
+                
+                <template v-if="form.program_usaha">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Usaha <span class="text-rose-500">*</span></label>
+                    <input v-model="form.nama_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: Warung Berkah">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Sektor Usaha <span class="text-rose-500">*</span></label>
+                    <input v-model="form.sektor_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: Makanan / Pertanian">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Kontak Pribadi <span class="text-rose-500">*</span></label>
+                    <input v-model="form.nomor_kontak" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Nomor handphone yang dapat dihubungi">
+                  </div>
+                </template>
               </div>
             </div>
 
@@ -653,7 +748,7 @@ const steps = [
         </div>
 
         <!-- TAB 2: CEK STATUS SURAT -->
-        <div v-if="activeTab === 'cek'" class="max-w-2xl mx-auto">
+        <div v-if="activeTab === 'cek'" class="max-w-2xl mx-auto" v-scroll-reveal="{ type: 'up' }">
           <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm">
             <div class="mb-6 pb-6 border-b border-slate-100">
               <h3 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -670,7 +765,7 @@ const steps = [
                 v-model="refInput"
                 type="text"
                 inputmode="numeric"
-                class="flex-1 px-4 py-3 rounded-2xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                class="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-300 text-sm font-mono focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
                 placeholder="Ketik 16 digit NIK..."
                 @keyup.enter="handleCekStatus"
               />
@@ -709,44 +804,44 @@ const steps = [
                 </div>
 
                 <!-- Stepper Progress Timeline -->
-                <div class="p-5 bg-white border-b border-slate-100">
-                  <div class="flex items-center justify-between relative">
-                    <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-100 z-0"></div>
+                <div class="py-7 px-6 bg-white border-b border-slate-100">
+                  <div class="grid grid-cols-3 relative" style="max-width: 480px; margin: 0 auto;">
+                    <!-- Background line (gray) -->
+                    <div class="absolute top-[18px] left-[calc(16.66%)] right-[calc(16.66%)] h-1 bg-slate-200 rounded-full"></div>
+                    <!-- Progress line (green) -->
                     <div
-                      class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-emerald-600 z-0 transition-all duration-500"
-                      :style="{
-                        width: surat.status === 'Diajukan' ? '15%' : surat.status === 'Diproses' ? '50%' : '100%'
-                      }"
+                      class="absolute top-[18px] left-[calc(16.66%)] h-1 bg-emerald-500 rounded-full transition-all duration-500"
+                      :style="{ width: surat.status === 'Diajukan' ? '0%' : surat.status === 'Diproses' ? '33.33%' : '66.66%' }"
                     ></div>
 
                     <!-- Step 1 -->
-                    <div class="relative z-10 flex flex-col items-center">
-                      <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-emerald-600 text-white shadow">
+                    <div class="flex flex-col items-center relative z-10">
+                      <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold bg-emerald-500 text-white shadow-sm border-[3px] border-white outline outline-1 outline-emerald-200">
                         1
                       </div>
-                      <span class="text-[10px] font-semibold text-slate-600 mt-1">Diajukan</span>
+                      <span class="mt-2.5 text-xs font-semibold text-slate-500">Diajukan</span>
                     </div>
 
                     <!-- Step 2 -->
-                    <div class="relative z-10 flex flex-col items-center">
+                    <div class="flex flex-col items-center relative z-10">
                       <div
-                        class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors"
-                        :class="['Diproses', 'Selesai'].includes(surat.status) ? 'bg-emerald-600 text-white shadow' : 'bg-slate-200 text-slate-500'"
+                        class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border-[3px] border-white transition-colors"
+                        :class="['Diproses', 'Selesai'].includes(surat.status) ? 'bg-emerald-500 text-white outline outline-1 outline-emerald-200' : 'bg-slate-200 text-slate-400 outline outline-1 outline-slate-100'"
                       >
                         2
                       </div>
-                      <span class="text-[10px] font-semibold text-slate-600 mt-1">Diproses</span>
+                      <span class="mt-2.5 text-xs font-semibold text-slate-500">Diproses</span>
                     </div>
 
                     <!-- Step 3 -->
-                    <div class="relative z-10 flex flex-col items-center">
+                    <div class="flex flex-col items-center relative z-10">
                       <div
-                        class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors"
-                        :class="surat.status === 'Selesai' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-200 text-slate-500'"
+                        class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border-[3px] border-white transition-colors"
+                        :class="surat.status === 'Selesai' ? 'bg-emerald-500 text-white outline outline-1 outline-emerald-200' : 'bg-slate-200 text-slate-400 outline outline-1 outline-slate-100'"
                       >
-                        <Check class="w-3.5 h-3.5" />
+                        <Check class="w-4 h-4" />
                       </div>
-                      <span class="text-[10px] font-semibold text-slate-600 mt-1">Selesai</span>
+                      <span class="mt-2.5 text-xs font-semibold text-slate-500">Selesai</span>
                     </div>
                   </div>
                 </div>

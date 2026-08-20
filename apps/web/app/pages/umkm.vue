@@ -21,24 +21,30 @@ const kategoriList = ['Semua', 'Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya']
 
 // Foto produk lokal sebagai fallback visual yang tetap elegan
 const produkLokal = [
-  { id: 1, namaProduk: 'Keripik Singkong Pedas Bu Enah', harga: 15000, kategori: 'Makanan', deskripsi: 'Keripik singkong renyah dengan bumbu pedas khas Cianjur. Dibuat dari singkong pilihan yang diolah secara tradisional. Tersedia varian original, pedas, dan balado.', pemilik: 'Bu Enah Sukaenah', noWaPemilik: '6281234567890', fotoPath: '/images/products/keripik.jpg' },
-  { id: 2, namaProduk: 'Dodol Cianjur Pak Oman', harga: 25000, kategori: 'Makanan', deskripsi: 'Dodol khas Cianjur yang legit dan manis. Terbuat dari beras ketan, gula aren, dan santan kelapa murni. Cocok untuk oleh-oleh keluarga.', pemilik: 'Pak Oman Sulaeman', noWaPemilik: '6281234567891', fotoPath: '/images/products/dodol.jpg' },
-  { id: 3, namaProduk: 'Anyaman Bambu Mang Dadang', harga: 75000, kategori: 'Kerajinan', deskripsi: 'Kerajinan anyaman bambu buatan tangan. Tersedia berbagai bentuk: tampah, boboko, dan hiasan dinding. Setiap produk unik dan dibuat dengan teliti.', pemilik: 'Mang Dadang Hermawan', noWaPemilik: '6281234567892', fotoPath: '/images/products/anyaman.jpg' },
-  { id: 4, namaProduk: 'Gula Aren Asli Pak Udin', harga: 35000, kategori: 'Hasil Tani', deskripsi: 'Gula aren murni 100% tanpa campuran. Diambil langsung dari pohon aren di kebun sekitar desa. Cocok untuk memasak dan minuman tradisional.', pemilik: 'Pak Udin Saepuloh', noWaPemilik: '6281234567893', fotoPath: '/images/products/gula-aren.jpg' },
-  { id: 5, namaProduk: 'Kopi Pilihan Desa', harga: 30000, kategori: 'Hasil Tani', deskripsi: 'Biji kopi pilihan yang dipetik dari perkebunan warga Bojongpicung dengan aroma khas.', pemilik: 'Kelompok Tani Sukarama', noWaPemilik: '6281234567894', fotoPath: '/images/products/kopi.jpg' },
-  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 25000, kategori: 'Kerajinan', deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6281234567895', fotoPath: '/images/products/sapu-injuk.jpg' },
-  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 45000, kategori: 'Kerajinan', deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6281234567896', fotoPath: '/images/products/doran-pacul.jpg' },
+  { id: 5, namaProduk: 'Kukumbul (Pelampung Pancing)', harga: 80000, kategori: 'Kerajinan', deskripsi: 'Kerajinan pelampung pancing (kukumbul) buatan tangan berkualitas.', pemilik: 'Pengrajin Kukumbul', noWaPemilik: '6281573276932', fotoPath: '/images/kukumbul.jpeg' },
+  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 150000, kategori: 'Kerajinan', deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6283817916016', fotoPath: '/images/sapu injuk.jpeg' },
+  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 140000, kategori: 'Kerajinan', deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6285943097900', fotoPath: '/images/doranpacul.jpeg' },
+  { id: 8, namaProduk: 'Pentol Jagoan', harga: 5000, kategori: 'Makanan', deskripsi: 'Pentol Jagoan yang lezat dan gurih. Harga satuan bervariasi dari Rp 1.000, Rp 2.000, hingga Rp 5.000.', pemilik: 'Pentol Jagoan', noWaPemilik: '6283871171146', fotoPath: '/images/products/pentol_jagoan.jpg' },
 ]
 
 const { data: dbProduk } = useAsyncData('umkm-all', () =>
-  apiGet<any[]>('/api/umkm').catch(() => [])
+  apiGet<any[]>('/api/umkm').catch(() => []),
+  { server: false }
 )
 
 const allProduk = computed(() => {
+  let list = produkLokal
   if (dbProduk.value && dbProduk.value.length > 0) {
-    return dbProduk.value
+    list = [...produkLokal, ...dbProduk.value]
   }
-  return produkLokal
+  // Remove duplicates by name
+  const seen = new Set()
+  return list.filter((item: any) => {
+    const name = (item.namaProduk || item.nama_produk || '').toLowerCase().trim()
+    if (seen.has(name)) return false
+    seen.add(name)
+    return true
+  })
 })
 
 const filteredProduk = computed(() => {
@@ -84,6 +90,61 @@ function getWhatsappUrl(p: any): string {
   const message = `Halo ${seller}, saya melihat produk "${name}" di Website Resmi Desa Sukarama. Apakah produk ini masih tersedia dan bisa saya pesan?`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
+
+// Scroll reveal directive with multiple animation types
+const vScrollReveal = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined') return;
+    const type = binding.value?.type || 'up'
+    let delay = binding.value?.delay || 0
+    const stagger = binding.value?.stagger
+
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+
+    if (stagger) {
+      Array.from(el.children).forEach((c: any, i) => {
+        c.style.opacity = '0'
+        c.style.transform = 'translateY(120px)'
+        c.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}`
+        c.style.transitionDelay = `${delay + (i * 150)}ms`
+      })
+    } else {
+      el.style.opacity = '0'
+      el.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}, filter 1s ease`
+      el.style.filter = 'blur(8px)'
+      if (delay) el.style.transitionDelay = `${delay}ms`
+
+      switch (type) {
+        case 'left': el.style.transform = 'translateX(-120px)'; break
+        case 'right': el.style.transform = 'translateX(120px)'; break
+        case 'zoom': el.style.transform = 'scale(0.85) translateY(40px)'; break
+        default: el.style.transform = 'translateY(120px)'
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(() => {
+          if (stagger) {
+            Array.from(el.children).forEach((c: any) => {
+              c.style.opacity = '1'
+              c.style.transform = 'translate(0)'
+            })
+          } else {
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0) scale(1)'
+            el.style.filter = 'blur(0)'
+          }
+        })
+        observer.unobserve(el)
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' })
+    
+    setTimeout(() => {
+      observer.observe(el)
+    }, 50)
+  }
+}
 </script>
 
 <template>
@@ -97,10 +158,10 @@ function getWhatsappUrl(p: any): string {
           <ChevronRight class="w-3 h-3" />
           <span>Katalog UMKM</span>
         </div>
-        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3">
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3" v-scroll-reveal="{ type: 'zoom' }">
           Pusat Produk UMKM Desa Sukarama
         </h1>
-        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed" v-scroll-reveal="{ delay: 150 }">
           Dukung kemajuan ekonomi lokal warga Sukarama. Belanja langsung dari perajin dan petani desa dengan transaksi tanpa perantara!
         </p>
       </div>
@@ -110,7 +171,7 @@ function getWhatsappUrl(p: any): string {
     <section class="py-10 md:py-14">
       <div class="container-app">
         <!-- Search & Filter Controls -->
-        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm mb-10">
+        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm mb-10" v-scroll-reveal="{ type: 'up' }">
           <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
             <!-- Search input -->
             <div class="relative w-full md:w-96">
@@ -141,7 +202,7 @@ function getWhatsappUrl(p: any): string {
         </div>
 
         <!-- Product Grid -->
-        <div v-if="filteredProduk.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div v-if="filteredProduk.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" v-scroll-reveal="{ stagger: true }">
           <div
             v-for="p in filteredProduk"
             :key="p.id"
@@ -190,6 +251,8 @@ function getWhatsappUrl(p: any): string {
                   <span class="text-[10px] text-slate-400 block leading-none font-medium">Harga</span>
                   <span class="text-base font-black text-emerald-800">
                     {{ formatRupiah(p.harga) }}
+                    <span v-if="(p.nama_produk || p.namaProduk).toLowerCase().includes('kukumbul')" class="text-xs font-normal text-slate-500">/ Pack</span>
+                    <span v-else class="text-xs font-normal text-slate-500">/ Kodi</span>
                   </span>
                 </div>
 
@@ -268,6 +331,8 @@ function getWhatsappUrl(p: any): string {
               </h3>
               <span class="text-lg font-black text-emerald-800 whitespace-nowrap">
                 {{ formatRupiah(selectedProduct.harga) }}
+                <span v-if="(selectedProduct.nama_produk || selectedProduct.namaProduk).toLowerCase().includes('kukumbul')" class="text-sm font-normal text-slate-500">/ Pack</span>
+                <span v-else class="text-sm font-normal text-slate-500">/ Kodi</span>
               </span>
             </div>
 

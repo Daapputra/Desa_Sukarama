@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Eye, Target, BookOpen, Users, MapPin, ChevronRight, Landmark, ShieldCheck } from 'lucide-vue-next'
+import { Eye, Target, BookOpen, Users, MapPin, ChevronRight, Landmark, ShieldCheck, Image as ImageIcon } from 'lucide-vue-next'
 
 useHead({
   title: 'Profil & Sejarah — Desa Sukarama',
@@ -9,6 +9,7 @@ useHead({
 })
 
 const activeTab = ref('sejarah')
+const selectedImage = ref<string | null>(null)
 
 const tabs = [
   { id: 'sejarah', label: 'Sejarah & Asal Usul', icon: BookOpen },
@@ -31,12 +32,67 @@ const aparatur = [
 const demografi = [
   { label: 'Total Penduduk Terindeks', value: '6.167 jiwa' },
   { label: 'Jumlah Kepala Keluarga (KK)', value: '1.950+ KK' },
-  { label: 'Wilayah Dusun', value: '3 Dusun (Sukamanah, Sukamaju, Sukasenang)' },
+  { label: 'Wilayah Dusun', value: '3 Dusun' },
   { label: 'Pembagian RW & RT', value: '6 RW / 33 RT' },
   { label: 'Luas Wilayah Total', value: '485,5 Hektar' },
   { label: 'Topografi & Ketinggian', value: 'Dataran Rendah & Pertanian (350 - 450 mdpl)' },
-  { label: 'Komoditas Unggulan', value: 'Padi, Singkong, Gula Aren, Perikanan, & Anyaman' },
+  { label: 'Komoditas Unggulan', value: 'Padi, Kukumbul, Sapu Injuk, Doran Pacul, & Anyaman' },
 ]
+
+// Scroll reveal directive with multiple animation types
+const vScrollReveal = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined') return;
+    const type = binding.value?.type || 'up'
+    let delay = binding.value?.delay || 0
+    const stagger = binding.value?.stagger
+
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+
+    if (stagger) {
+      Array.from(el.children).forEach((c: any, i) => {
+        c.style.opacity = '0'
+        c.style.transform = 'translateY(120px)'
+        c.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}`
+        c.style.transitionDelay = `${delay + (i * 150)}ms`
+      })
+    } else {
+      el.style.opacity = '0'
+      el.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}, filter 1s ease`
+      el.style.filter = 'blur(8px)'
+      if (delay) el.style.transitionDelay = `${delay}ms`
+
+      switch (type) {
+        case 'left': el.style.transform = 'translateX(-120px)'; break
+        case 'right': el.style.transform = 'translateX(120px)'; break
+        case 'zoom': el.style.transform = 'scale(0.85) translateY(40px)'; break
+        default: el.style.transform = 'translateY(120px)'
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(() => {
+          if (stagger) {
+            Array.from(el.children).forEach((c: any) => {
+              c.style.opacity = '1'
+              c.style.transform = 'translate(0)'
+            })
+          } else {
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0) scale(1)'
+            el.style.filter = 'blur(0)'
+          }
+        })
+        observer.unobserve(el)
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' })
+    
+    setTimeout(() => {
+      observer.observe(el)
+    }, 50)
+  }
+}
 </script>
 
 <template>
@@ -50,10 +106,10 @@ const demografi = [
           <ChevronRight class="w-3 h-3" />
           <span>Profil Desa</span>
         </div>
-        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3">
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3" v-scroll-reveal="{ type: 'zoom' }">
           Profil & Sejarah Desa Sukarama
         </h1>
-        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed" v-scroll-reveal="{ delay: 150 }">
           Mengenal lebih dekat warisan sejarah Tanjung Singuru, arah visi-misi pembangunan, dan aparatur pelayan masyarakat.
         </p>
       </div>
@@ -114,24 +170,53 @@ const demografi = [
                 Selain sejarah kerajaan kuno, Desa Sukarama juga dikenal dengan mahakarya infrastruktur pertanian berupa <b>Jembatan Irigasi Cai Kolonial Belanda</b> yang dibangun pada tahun 1897 di kawasan dataran Tjihea (Tjihea Vlakte). Saluran irigasi monumental ini hingga kini terus mengairi ribuan hektar persawahan subur di Bojongpicung.
               </p>
 
-              <figure class="my-8">
-                <img
-                  src="/images/sejarah-jembatan.jpg"
-                  alt="Irigasi Kolonial Tjihea Vlakte 1917"
-                  class="w-full rounded-2xl shadow-md border border-slate-200"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <figcaption class="text-center text-xs text-slate-500 mt-2.5 italic">
-                  Dokumentasi Saluran Irigasi Kolonial Belanda di kawasan Bojongpicung (Arsip Bersejarah)
-                </figcaption>
-              </figure>
+              <!-- Galeri Sejarah -->
+              <div class="mt-12 mb-4">
+                <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-100">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <ImageIcon class="w-4 h-4" />
+                  </div>
+                  <h3 class="text-lg font-bold text-slate-800">
+                    Galeri Dokumentasi Sejarah
+                  </h3>
+                </div>
+                
+                <!-- Foto Utama (sejarah8) -->
+                <figure class="mb-6 relative group overflow-hidden rounded-2xl shadow-md border border-slate-200 cursor-pointer" @click="selectedImage = '/images/sejarah8.jpg'" v-scroll-reveal="{ type: 'zoom' }">
+                  <img
+                    src="/images/sejarah8.jpg"
+                    alt="Dokumentasi Sejarah Utama"
+                    class="w-full h-[250px] sm:h-[400px] object-cover transition-transform duration-700 animate-history-pan group-hover:scale-[1.15]"
+                    loading="lazy"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <figcaption class="absolute bottom-4 left-6 right-6 text-white text-sm sm:text-base font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
+                    Arsip Sejarah Desa Sukarama
+                  </figcaption>
+                </figure>
+
+                <!-- Grid Foto Lainnya dengan efek STAGGER -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" v-scroll-reveal="{ stagger: true }">
+                  <figure v-for="num in [2, 3, 4, 5, 6, 7, 9, 10]" :key="num" class="relative group overflow-hidden rounded-xl shadow-sm border border-slate-200 aspect-[4/3] sm:aspect-square cursor-pointer" @click="selectedImage = `/images/sejarah${num}.jpg`">
+                    <img
+                      :src="`/images/sejarah${num}.jpg`"
+                      :alt="`Dokumentasi Sejarah ${num}`"
+                      class="w-full h-full object-cover transition-transform duration-500 animate-history-pan group-hover:scale-125"
+                      :style="{ animationDelay: `-${num * 1.5}s` }"
+                      loading="lazy"
+                    />
+                    <div class="absolute inset-0 bg-emerald-900/0 group-hover:bg-emerald-900/30 transition-colors duration-300 flex items-center justify-center">
+                      <ImageIcon class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-50 group-hover:scale-100" />
+                    </div>
+                  </figure>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Tab 2: Visi & Misi -->
-        <div v-if="activeTab === 'visimisi'" class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div v-if="activeTab === 'visimisi'" class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6" v-scroll-reveal="{ stagger: true }">
           <div class="bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm flex flex-col justify-between">
             <div>
               <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center mb-4">
@@ -169,7 +254,7 @@ const demografi = [
             <p class="text-xs text-slate-500 mt-1">Perangkat dan staf pelayanan yang berdedikasi melayani masyarakat.</p>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" v-scroll-reveal="{ stagger: true }">
             <div
               v-for="orang in aparatur"
               :key="orang.nama"
@@ -190,7 +275,7 @@ const demografi = [
         </div>
 
         <!-- Tab 4: Demografi -->
-        <div v-if="activeTab === 'demografi'" class="max-w-4xl mx-auto space-y-8">
+        <div v-if="activeTab === 'demografi'" class="max-w-4xl mx-auto space-y-8" v-scroll-reveal="{ type: 'up' }">
           <div class="bg-white rounded-3xl border border-slate-200/80 p-8 shadow-sm">
             <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
               <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
@@ -235,4 +320,38 @@ const demografi = [
       </div>
     </section>
   </div>
+
+  <!-- Lightbox Modal -->
+  <Transition
+    enter-active-class="transition duration-300 ease-out"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition duration-200 ease-in"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div 
+      v-if="selectedImage" 
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 p-4 sm:p-8 backdrop-blur-md"
+      @click="selectedImage = null"
+    >
+      <button class="absolute top-4 right-4 sm:top-8 sm:right-8 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition-all" @click="selectedImage = null" aria-label="Tutup">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <img :src="selectedImage" class="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10" @click.stop />
+    </div>
+  </Transition>
 </template>
+
+<style scoped>
+@keyframes pan-image {
+  0% { transform: scale(1.05) translate(0, 0); }
+  33% { transform: scale(1.12) translate(-2%, 1%); }
+  66% { transform: scale(1.08) translate(1%, -1.5%); }
+  100% { transform: scale(1.05) translate(0, 0); }
+}
+
+.animate-history-pan {
+  animation: pan-image 18s ease-in-out infinite;
+}
+</style>

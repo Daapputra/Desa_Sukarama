@@ -36,32 +36,29 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 px-4 py-12 relative overflow-hidden">
-    <!-- Ambient Background Elements -->
-    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:20px_20px]"></div>
-    <div class="absolute -top-40 -right-40 w-96 h-96 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-800/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12 relative overflow-hidden">
+    <!-- Single subtle ambient glow, not a pile of decorative blobs -->
+    <div class="absolute -top-40 -right-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="w-full max-w-md relative z-10">
-      <!-- Glassmorphic Login Card -->
-      <div class="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/60 shadow-2xl shadow-slate-950/40 p-8 sm:p-10">
+      <div class="bg-white rounded-xl border border-slate-200/80 shadow-xl p-8 sm:p-10">
         <!-- Logo & Header -->
         <div class="text-center mb-8">
           <div class="relative inline-block mb-3">
             <img
               src="/images/logo-desa.png"
               alt="Logo Desa Sukarama"
-              class="w-16 h-16 object-contain mx-auto drop-shadow-md hover:scale-105 transition-transform duration-300"
+              class="w-14 h-14 object-contain mx-auto"
             />
-            <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white shadow"></span>
+            <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></span>
           </div>
 
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold uppercase tracking-wide mb-3">
             <ShieldCheck class="w-3.5 h-3.5" />
             <span>Portal Administrator</span>
           </div>
 
-          <h1 class="text-2xl font-black text-slate-900 tracking-tight">
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
             Pemerintah Desa Sukarama
           </h1>
           <p class="text-xs text-slate-500 mt-1">
@@ -70,7 +67,7 @@ async function handleLogin() {
         </div>
 
         <!-- Error Alert -->
-        <div v-if="error" class="flex items-center gap-2.5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs mb-6 animate-fade-in">
+        <div v-if="error" class="flex items-center gap-2.5 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs mb-6">
           <AlertCircle class="w-4 h-4 shrink-0 text-rose-600" />
           <span>{{ error }}</span>
         </div>
@@ -78,13 +75,13 @@ async function handleLogin() {
         <!-- Form -->
         <form @submit.prevent="handleLogin" class="space-y-5">
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-2">Username Administrator</label>
+            <Label class="block text-xs font-medium text-slate-700 mb-2">Username Administrator</Label>
             <div class="relative">
-              <User class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
+              <User class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+              <Input
                 v-model="form.username"
                 type="text"
-                class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none transition-all"
+                class="w-full h-auto pl-10 pr-4 py-3 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                 placeholder="Ketik username admin"
                 autocomplete="username"
               />
@@ -92,19 +89,19 @@ async function handleLogin() {
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-2">Kata Sandi</label>
+            <Label class="block text-xs font-medium text-slate-700 mb-2">Kata Sandi</Label>
             <div class="relative">
-              <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
+              <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+              <Input
                 v-model="form.password"
                 :type="showPassword ? 'text' : 'password'"
-                class="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none transition-all"
+                class="w-full h-auto pl-10 pr-12 py-3 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                 placeholder="Ketik kata sandi"
                 autocomplete="current-password"
               />
               <button
                 type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 transition-colors z-10"
                 @click="showPassword = !showPassword"
                 :title="showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'"
               >
@@ -113,20 +110,20 @@ async function handleLogin() {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             :disabled="loading"
-            class="w-full py-3.5 rounded-2xl bg-emerald-900 hover:bg-emerald-800 active:scale-[0.99] text-white font-extrabold text-sm transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            class="w-full h-auto py-3 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white font-semibold text-sm"
           >
             <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
             <span>{{ loading ? 'Memverifikasi...' : 'Masuk ke Dashboard' }}</span>
-          </button>
+          </Button>
         </form>
 
         <div class="mt-8 pt-6 border-t border-slate-100 text-center">
           <NuxtLink
             to="/"
-            class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-emerald-800 transition-colors"
+            class="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-emerald-800 transition-colors"
           >
             <ArrowLeft class="w-3.5 h-3.5" />
             <span>Kembali ke Beranda Website</span>

@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import type { PrimitiveProps } from 'reka-ui'
-import type { HTMLAttributes } from 'vue'
+import type { Component, HTMLAttributes } from 'vue'
 import type { ButtonVariants } from '.'
 import { Primitive } from 'reka-ui'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '.'
 
-interface Props extends /* @vue-ignore */ PrimitiveProps {
+// Declared flat (not `extends PrimitiveProps`) so Vue's compiler can statically resolve
+// the type and register `as`/`asChild` as real runtime props — see reka-ui's own
+// Primitive component, whose `as` prop defaults to 'div' when the passed value is
+// undefined, which is exactly what happens if these keys aren't registered.
+interface Props {
+  as?: string | Component
+  asChild?: boolean
   variant?: ButtonVariants['variant']
   size?: ButtonVariants['size']
   class?: HTMLAttributes['class']

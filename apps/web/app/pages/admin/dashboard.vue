@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
-  FileText, ShoppingBag, Newspaper, MessageSquare, LogOut,
+  FileText, ShoppingBag, Newspaper, MessageSquare,
   Plus, Pencil, Trash2, Eye, AlertCircle, X, Printer, Search,
-  Clock, Globe, Loader2, Download, LayoutDashboard, MoreVertical
+  Clock, Loader2, Download, LayoutDashboard, MoreVertical
 } from 'lucide-vue-next'
 import { formatTanggal, formatRupiah, getStatusColor } from '~/utils/format'
 
@@ -111,11 +111,12 @@ onMounted(() => {
   loadAll()
 })
 
+const showLogoutConfirm = ref(false)
+
 async function handleLogout() {
-  if (confirm('Apakah Anda yakin ingin keluar dari panel admin?')) {
-    await logout()
-    router.push('/admin')
-  }
+  showLogoutConfirm.value = false
+  await logout()
+  router.push('/admin')
 }
 
 // Computed Filtered Lists
@@ -290,8 +291,16 @@ async function handleModalSubmit() {
   }
 }
 
-async function handleDelete(type: 'pengumuman' | 'umkm', id: number) {
-  if (!confirm('Apakah Anda yakin ingin menghapus data ini secara permanen?')) return
+const deleteTarget = ref<{ type: 'pengumuman' | 'umkm'; id: number } | null>(null)
+
+function requestDelete(type: 'pengumuman' | 'umkm', id: number) {
+  deleteTarget.value = { type, id }
+}
+
+async function handleDelete() {
+  if (!deleteTarget.value) return
+  const { type, id } = deleteTarget.value
+  deleteTarget.value = null
   try {
     if (type === 'pengumuman') await apiDelete(`/api/pengumuman/${id}`)
     else if (type === 'umkm') await apiDelete(`/api/umkm/${id}`)
@@ -320,7 +329,7 @@ function downloadSurat(id: number) {
       :active-tab="activeTab"
       :username="adminUsername || ''"
       @update:active-tab="activeTab = ($event as any)"
-      @logout="handleLogout"
+      @logout="showLogoutConfirm = true"
     />
 
     <SidebarInset class="bg-slate-50/70">
@@ -637,7 +646,7 @@ function downloadSurat(id: number) {
                           <Pencil class="w-3.5 h-3.5" />
                           <span>Edit Produk</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" @click="handleDelete('umkm', u.id)">
+                        <DropdownMenuItem variant="destructive" @click="requestDelete('umkm', u.id)">
                           <Trash2 class="w-3.5 h-3.5" />
                           <span>Hapus Produk</span>
                         </DropdownMenuItem>
@@ -721,7 +730,7 @@ function downloadSurat(id: number) {
                           <Pencil class="w-3.5 h-3.5" />
                           <span>Edit Pengumuman</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" @click="handleDelete('pengumuman', p.id)">
+                        <DropdownMenuItem variant="destructive" @click="requestDelete('pengumuman', p.id)">
                           <Trash2 class="w-3.5 h-3.5" />
                           <span>Hapus Pengumuman</span>
                         </DropdownMenuItem>
@@ -1046,5 +1055,41 @@ function downloadSurat(id: number) {
             </div>
       </DialogContent>
     </Dialog>
+
+    <!-- Logout confirmation -->
+    <AlertDialog :open="showLogoutConfirm" @update:open="showLogoutConfirm = $event">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Keluar dari Panel Admin?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Anda perlu login kembali untuk mengakses dashboard administrasi.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Batal</AlertDialogCancel>
+          <AlertDialogAction class="bg-rose-600 hover:bg-rose-700 text-white" @click="handleLogout">
+            Ya, Keluar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Delete confirmation (UMKM / Pengumuman) -->
+    <AlertDialog :open="!!deleteTarget" @update:open="(v) => { if (!v) deleteTarget = null }">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Hapus Data Ini?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ deleteTarget?.type === 'umkm' ? 'Produk UMKM' : 'Pengumuman' }} ini akan dihapus secara permanen dan tidak dapat dikembalikan.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Batal</AlertDialogCancel>
+          <AlertDialogAction class="bg-rose-600 hover:bg-rose-700 text-white" @click="handleDelete">
+            Ya, Hapus
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </SidebarProvider>
 </template>

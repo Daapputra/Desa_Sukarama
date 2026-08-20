@@ -332,7 +332,7 @@ function downloadSurat(id: number) {
       </header>
 
       <!-- Main Content Area -->
-      <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20">
+      <div class="w-full px-4 sm:px-6 lg:px-8 pt-8 pb-20">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
@@ -351,7 +351,7 @@ function downloadSurat(id: number) {
         <!-- TAB 0: RINGKASAN -->
         <div v-if="activeTab === 'ringkasan'" class="space-y-6">
           <!-- Stat grid — hairline dividers instead of separate shadowed cards, one flat surface -->
-          <div v-if="stats" class="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200/80 border border-slate-200/80 rounded-xl overflow-hidden">
+          <div v-if="stats" class="grid grid-cols-2 xl:grid-cols-4 gap-px bg-slate-200/80 border border-slate-200/80 rounded-xl overflow-hidden">
             <div class="bg-white p-5">
               <div class="flex items-center justify-between mb-2.5">
                 <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Surat Baru</span>
@@ -405,7 +405,7 @@ function downloadSurat(id: number) {
           </div>
 
           <!-- Recent surat / recent pesan -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div class="bg-white rounded-xl border border-slate-200/80 p-5">
               <div class="flex items-center justify-between mb-3">
                 <h2 class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Pengajuan Surat Terbaru</h2>
@@ -484,15 +484,15 @@ function downloadSurat(id: number) {
         <!-- Table -->
         <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left">
+            <table class="w-full min-w-[900px] text-left table-fixed">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">No. Ref</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemohon / NIK</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jenis Dokumen</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status & Aksi Cepat</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tgl Pengajuan</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="w-[15%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">No. Ref</th>
+                  <th class="w-[23%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemohon / NIK</th>
+                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jenis Dokumen</th>
+                  <th class="w-[18%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status & Aksi Cepat</th>
+                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tgl Pengajuan</th>
+                  <th class="w-[12%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -501,16 +501,16 @@ function downloadSurat(id: number) {
                   :key="s.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4">
-                    <span class="font-mono text-sm font-medium text-slate-700 block">{{ s.ref_number || s.refNumber }}</span>
+                  <td class="px-5 py-4 truncate">
+                    <span class="font-mono text-sm font-medium text-slate-700 block truncate">{{ s.ref_number || s.refNumber }}</span>
                     <span class="text-[10px] text-slate-400">ID: #{{ s.id }}</span>
                   </td>
-                  <td class="px-5 py-4">
-                    <div class="font-medium text-slate-900 text-sm">{{ s.nama }}</div>
-                    <div class="text-sm text-slate-500 font-mono">NIK: {{ s.nik }}</div>
+                  <td class="px-5 py-4 truncate">
+                    <div class="font-medium text-slate-900 text-sm truncate">{{ s.nama }}</div>
+                    <div class="text-sm text-slate-500 font-mono truncate">NIK: {{ s.nik }}</div>
                   </td>
-                  <td class="px-5 py-4">
-                    <span class="inline-block text-sm font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  <td class="px-5 py-4 truncate">
+                    <span class="inline-block max-w-full truncate text-sm font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
                       {{ s.jenis_surat || s.jenisSurat }}
                     </span>
                   </td>
@@ -593,14 +593,14 @@ function downloadSurat(id: number) {
         <!-- Table -->
         <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left">
+            <table class="w-full min-w-[820px] text-left table-fixed">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Produk</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kategori</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemilik / Kontak</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="w-[34%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Produk</th>
+                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kategori</th>
+                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Harga</th>
+                  <th class="w-[22%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemilik / Kontak</th>
+                  <th class="w-[12%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -609,21 +609,21 @@ function downloadSurat(id: number) {
                   :key="u.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4">
-                    <div class="font-medium text-slate-900 text-sm">{{ u.nama_produk || u.namaProduk }}</div>
-                    <div class="text-sm text-slate-400 line-clamp-1 max-w-sm">{{ u.deskripsi }}</div>
+                  <td class="px-5 py-4 truncate">
+                    <div class="font-medium text-slate-900 text-sm truncate">{{ u.nama_produk || u.namaProduk }}</div>
+                    <div class="text-sm text-slate-400 truncate">{{ u.deskripsi }}</div>
                   </td>
-                  <td class="px-5 py-4">
+                  <td class="px-5 py-4 truncate">
                     <Badge class="rounded-md bg-emerald-50 text-emerald-800 text-xs font-medium border-emerald-200/60 hover:bg-emerald-50">
                       {{ u.kategori }}
                     </Badge>
                   </td>
-                  <td class="px-5 py-4 text-sm font-semibold text-emerald-800">
+                  <td class="px-5 py-4 text-sm font-semibold text-emerald-800 truncate">
                     {{ formatRupiah(u.harga) }}
                   </td>
-                  <td class="px-5 py-4 text-sm">
-                    <div class="font-medium text-slate-800">{{ u.pemilik }}</div>
-                    <div class="font-mono text-slate-400">{{ u.no_wa_pemilik || u.noWaPemilik || '-' }}</div>
+                  <td class="px-5 py-4 text-sm truncate">
+                    <div class="font-medium text-slate-800 truncate">{{ u.pemilik }}</div>
+                    <div class="font-mono text-slate-400 truncate">{{ u.no_wa_pemilik || u.noWaPemilik || '-' }}</div>
                   </td>
                   <td class="px-5 py-4 text-right">
                     <DropdownMenu>
@@ -685,13 +685,13 @@ function downloadSurat(id: number) {
         <!-- Table -->
         <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left">
+            <table class="w-full min-w-[760px] text-left table-fixed">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Judul Pengumuman</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Agenda</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Ringkas</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                  <th class="w-[22%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Judul Pengumuman</th>
+                  <th class="w-[14%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Agenda</th>
+                  <th class="w-[52%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Ringkas</th>
+                  <th class="w-[12%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -700,13 +700,13 @@ function downloadSurat(id: number) {
                   :key="p.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4 font-medium text-slate-900 text-sm max-w-xs">
+                  <td class="px-5 py-4 font-medium text-slate-900 text-sm truncate">
                     {{ p.judul }}
                   </td>
                   <td class="px-5 py-4 text-sm font-semibold text-emerald-800 whitespace-nowrap">
                     {{ formatTanggal(p.tanggal) }}
                   </td>
-                  <td class="px-5 py-4 text-sm text-slate-500 line-clamp-2 max-w-md">
+                  <td class="px-5 py-4 text-sm text-slate-500 line-clamp-2">
                     {{ p.konten }}
                   </td>
                   <td class="px-5 py-4 text-right whitespace-nowrap">
@@ -759,14 +759,14 @@ function downloadSurat(id: number) {
 
         <div class="bg-white rounded-xl border border-slate-200/80 overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left">
+            <table class="w-full min-w-[820px] text-left table-fixed">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Warga</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kontak (HP/Email)</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Pesan / Aspirasi</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Masuk</th>
-                  <th class="px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Detail</th>
+                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Warga</th>
+                  <th class="w-[18%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kontak (HP/Email)</th>
+                  <th class="w-[40%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Pesan / Aspirasi</th>
+                  <th class="w-[16%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Masuk</th>
+                  <th class="w-[10%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Detail</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -775,13 +775,13 @@ function downloadSurat(id: number) {
                   :key="m.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
-                  <td class="px-5 py-4 font-medium text-slate-900 text-sm">
+                  <td class="px-5 py-4 font-medium text-slate-900 text-sm truncate">
                     {{ m.nama }}
                   </td>
-                  <td class="px-5 py-4 text-sm font-mono text-emerald-800">
+                  <td class="px-5 py-4 text-sm font-mono text-emerald-800 truncate">
                     {{ m.kontak }}
                   </td>
-                  <td class="px-5 py-4 text-sm text-slate-600 max-w-xs truncate">
+                  <td class="px-5 py-4 text-sm text-slate-600 truncate">
                     {{ m.pesan }}
                   </td>
                   <td class="px-5 py-4 text-sm text-slate-400 whitespace-nowrap">

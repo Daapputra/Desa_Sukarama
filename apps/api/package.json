@@ -8,6 +8,8 @@
     "build": "tsc",
     "start": "node --env-file=.env dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env src/db/seed.ts",
@@ -30,8 +32,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.16.3",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.4",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.11"
   }
 }

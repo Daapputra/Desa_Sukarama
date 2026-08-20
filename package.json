@@ -14,6 +14,7 @@
     "build:api": "npm --prefix apps/api run build",
     "build:web": "npm --prefix apps/web run build",
     "typecheck": "npm --prefix apps/api run build && npm --prefix apps/web run typecheck",
+    "test:api": "npm --prefix apps/api run test",
     "import:penduduk": "npm --prefix apps/api run import:penduduk",
     "db:push": "npm --prefix apps/api run db:push",
     "db:seed": "npm --prefix apps/api run db:seed",

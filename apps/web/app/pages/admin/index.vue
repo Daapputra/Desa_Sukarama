@@ -36,12 +36,9 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12 relative overflow-hidden">
-    <!-- Single subtle ambient glow, not a pile of decorative blobs -->
-    <div class="absolute -top-40 -right-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
-    <div class="w-full max-w-md relative z-10">
-      <div class="bg-white rounded-xl border border-slate-200/80 shadow-xl p-8 sm:p-10">
+  <div class="min-h-screen flex items-center justify-center bg-slate-50/70 px-4 py-12">
+    <div class="w-full max-w-md">
+      <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm p-8 sm:p-10">
         <!-- Logo & Header -->
         <div class="text-center mb-8">
           <div class="relative inline-block mb-3">
@@ -53,9 +50,11 @@ async function handleLogin() {
             <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></span>
           </div>
 
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold uppercase tracking-wide mb-3">
-            <ShieldCheck class="w-3.5 h-3.5" />
-            <span>Portal Administrator</span>
+          <div class="flex justify-center mb-3">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold uppercase tracking-wide">
+              <ShieldCheck class="w-3.5 h-3.5" />
+              <span>Portal Administrator</span>
+            </div>
           </div>
 
           <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
@@ -81,7 +80,7 @@ async function handleLogin() {
               <Input
                 v-model="form.username"
                 type="text"
-                class="w-full h-auto pl-10 pr-4 py-3 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
+                class="w-full h-auto pl-10 pr-4 py-2.5 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                 placeholder="Ketik username admin"
                 autocomplete="username"
               />
@@ -95,7 +94,7 @@ async function handleLogin() {
               <Input
                 v-model="form.password"
                 :type="showPassword ? 'text' : 'password'"
-                class="w-full h-auto pl-10 pr-12 py-3 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
+                class="w-full h-auto pl-10 pr-12 py-2.5 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                 placeholder="Ketik kata sandi"
                 autocomplete="current-password"
               />
@@ -113,7 +112,7 @@ async function handleLogin() {
           <Button
             type="submit"
             :disabled="loading"
-            class="w-full h-auto py-3 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white font-semibold text-sm"
+            class="w-full h-auto py-2.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors mt-2"
           >
             <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
             <span>{{ loading ? 'Memverifikasi...' : 'Masuk ke Dashboard' }}</span>

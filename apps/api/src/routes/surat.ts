@@ -270,9 +270,14 @@ export async function suratRoutes(fastify: FastifyInstance) {
     return { message: `Status diperbarui menjadi "${status}"` }
   })
 
-  // GET /api/surat/:id/download-surat (public)
+  // GET /api/surat/:id/download-surat (public — completed letters are downloadable
+  // without login, but a custom nomor_surat override is only honored for admins;
+  // otherwise anyone could stamp an arbitrary official reference number onto a
+  // real village letter just by adding a query param.)
   fastify.get('/api/surat/:id/download-surat', async (request, reply) => {
     const { id } = request.params as { id: string }
+    const authToken = request.headers['authorization']?.replace('Bearer ', '')
+    const isAdmin = !!(authToken && getToken(authToken))
 
     const [surat] = await db
       .select()
@@ -306,8 +311,11 @@ export async function suratRoutes(fastify: FastifyInstance) {
     } else if (surat.jenisSurat.toLowerCase().includes('usaha')) {
       templateName = 'SKU.docx'
     } else {
-      // Default fallback jika tidak match
-      templateName = 'Surat_Domisili.docx'
+      // No silent fallback: generating the wrong official letter is worse than
+      // failing loudly. All four jenis_surat values offered on the public form
+      // match one of the branches above — reaching here means a jenis_surat
+      // was introduced (or edited into the database) without a matching template.
+      return reply.status(400).send({ error: `Tidak ada template dokumen untuk jenis surat "${surat.jenisSurat}"` })
     }
 
     function findTemplatePath(fileName: string): string {
@@ -396,6 +404,8 @@ export async function suratRoutes(fastify: FastifyInstance) {
 
       const toUpper = (str: string | undefined | null) => (str || '').toString().toUpperCase();
 
+      const customNomorSurat = isAdmin ? (request.query as any).nomor_surat : undefined
+
       // Render dokumen dengan data
       doc.render({
         nama: toUpper(namaPemohon),
@@ -467,8 +477,8 @@ export async function suratRoutes(fastify: FastifyInstance) {
         tanggal_berlaku: tglBerlaku,
         TANGGAL_BERLAKU: tglBerlaku,
         tanggalBerlaku: tglBerlaku,
-        nomor_surat: (request.query as any).nomor_surat || surat.refNumber,
-        NOMOR_SURAT: (request.query as any).nomor_surat || surat.refNumber,
+        nomor_surat: customNomorSurat || surat.refNumber,
+        NOMOR_SURAT: customNomorSurat || surat.refNumber,
 
         jabatan_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
         JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'SEKRETARIS DESA' : 'KEPALA DESA',
@@ -495,11 +505,14 @@ export async function suratRoutes(fastify: FastifyInstance) {
       reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
       return reply.send(buf)
     } catch (error: any) {
+      // Logged server-side only — this route is public (no auth), so the response
+      // must never include the stack trace (file paths, internals) or it leaks to
+      // anyone who can reach this endpoint.
       console.error('Error generating document:', error)
       const details = error.properties && error.properties.errors
         ? error.properties.errors.map((e: any) => e.message).join(', ')
         : error.message;
-      return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details, stack: error.stack })
+      return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details })
     }
   })
 }

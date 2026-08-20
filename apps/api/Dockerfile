@@ -3,13 +3,13 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
-# Copy ONLY the api package.json
-# This isolates the build from the monorepo workspace and prevents npm edgeOut errors
-COPY apps/api/package.json ./
+# Copy ONLY the api package.json + lockfile (isolates the build from the
+# monorepo workspace and prevents npm edgeOut errors). Using `npm ci` with a
+# committed lockfile instead of `npm install` skips dependency resolution
+# against the registry entirely — much faster and fully reproducible.
+COPY apps/api/package.json apps/api/package-lock.json ./
 
-# Install dependencies in isolation
-RUN npm i -g npm@latest
-RUN npm install --ignore-scripts
+RUN npm ci --ignore-scripts
 
 # Copy backend source code
 COPY apps/api ./

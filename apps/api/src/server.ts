@@ -1,14 +1,16 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
+import { pool } from './db/index.js'
 import { seedDatabase } from './db/seed.js'
 import { adminRoutes } from './routes/admin.js'
 import { pengumumanRoutes } from './routes/pengumuman.js'
 import { suratRoutes } from './routes/surat.js'
 import { umkmRoutes } from './routes/umkm.js'
 import { kontakRoutes } from './routes/kontak.js'
+import { chatRoutes } from './routes/chat.js'
 
-const PORT = parseInt(process.env.API_PORT || '3001')
+const PORT = parseInt(process.env.API_PORT || process.env.PORT || '3005')
 
 const app = Fastify({
   logger: true,
@@ -44,6 +46,7 @@ await app.register(pengumumanRoutes)
 await app.register(suratRoutes)
 await app.register(umkmRoutes)
 await app.register(kontakRoutes)
+await app.register(chatRoutes)
 
 // ── Health check ─────────────────────────────────────────
 app.get('/api/health', async () => {
@@ -68,11 +71,16 @@ async function start() {
 
 void start()
 
-async function closeDatabase() {
-  await app.close()
+async function gracefulShutdown() {
+  try {
+    await app.close()
+    await pool.end()
+  } catch (err) {
+    app.log.error(err)
+  }
 }
 
-process.once('SIGINT', closeDatabase)
-process.once('SIGTERM', closeDatabase)
+process.once('SIGINT', gracefulShutdown)
+process.once('SIGTERM', gracefulShutdown)
 
 export default app

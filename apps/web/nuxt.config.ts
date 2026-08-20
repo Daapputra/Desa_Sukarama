@@ -1,27 +1,37 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  devtools: { enabled: false },
 
   modules: [
     '@nuxtjs/tailwindcss',
     'shadcn-nuxt',
   ],
 
-  shadcn: {
-    prefix: '',
-    componentDir: './app/components/ui',
-  },
-
   tailwindcss: {
     configPath: 'tailwind.config.ts',
     cssPath: '~/assets/css/main.css',
   },
 
+  shadcn: {
+    prefix: '',
+    componentDir: './app/components/ui',
+  },
+
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_BASE || 'http://127.0.0.1:3005',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.API_BASE || 'http://127.0.0.1:3005',
     },
+  },
+
+  nitro: {
+    compressPublicAssets: true,
+  },
+
+  routeRules: {
+    '/profil': { prerender: true },
+    '/images/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+    '/templates/**': { headers: { 'cache-control': 'public, max-age=86400' } },
   },
 
   app: {
@@ -35,9 +45,10 @@ export default defineNuxtConfig({
           name: 'description',
           content: 'Website Resmi Pemerintah Desa Sukarama, Kecamatan Bojongpicung, Kabupaten Cianjur. Portal informasi, layanan surat online, dan produk UMKM desa.',
         },
-        { name: 'theme-color', content: '#1B5E20' },
+        { name: 'theme-color', content: '#064e3b' },
       ],
       link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {

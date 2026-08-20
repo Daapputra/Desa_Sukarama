@@ -5,6 +5,7 @@ import { suratPengajuan, penduduk } from '../db/schema.js'
 import { getToken } from '../plugins/auth.js'
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
+import ImageModule from 'docxtemplater-image-module-free'
 import fs from 'fs'
 import path from 'path'
 
@@ -40,6 +41,24 @@ const allowedDocumentTypes = new Set([
   'application/pdf',
 ])
 
+// In-memory template and signature asset caching for blazing-fast generation
+const templateCache = new Map<string, string>()
+const imageCache = new Map<string, Buffer>()
+
+function getCachedTemplate(templatePath: string): string {
+  // Nonaktifkan cache sementara (baca file fresh) agar editan MS Word langsung berefek
+  return fs.readFileSync(templatePath, 'binary')
+}
+
+function getCachedImage(imagePath: string): Buffer {
+  let cached = imageCache.get(imagePath)
+  if (!cached) {
+    cached = fs.readFileSync(imagePath)
+    imageCache.set(imagePath, cached)
+  }
+  return cached
+}
+
 export async function suratRoutes(fastify: FastifyInstance) {
   // POST /api/surat (multipart — public)
   fastify.post('/api/surat', async (request, reply) => {
@@ -61,7 +80,12 @@ export async function suratRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { nama, nik, no_kk, jenis_surat, keperluan, no_wa } = fields
+    const {
+      nama, nik, no_kk, jenis_surat, keperluan, no_wa,
+      nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat,
+      nama_program, tahun_program, nama_usaha, sektor_usaha, nomor_kontak,
+      bidang_usaha, alamat_usaha, lama_usaha, penandatangan, program_usaha
+    } = fields
 
     if (!nama || !nik || !no_kk || !jenis_surat || !keperluan || !no_wa) {
       return reply.status(400).send({ error: 'Semua field wajib harus diisi' })
@@ -75,12 +99,25 @@ export async function suratRoutes(fastify: FastifyInstance) {
 
     const refNumber = generateRefNumber()
 
-    // Otomatis masukkan NIK baru ke database penduduk jika belum ada
-    await db.insert(penduduk).values({
+    // Masukkan atau update NIK ke database penduduk
+    const insertData: any = {
       nik,
       noKk: no_kk,
       namaLengkap: nama,
-    }).onConflictDoNothing({ target: penduduk.nik })
+    }
+    const updateData: any = { noKk: no_kk, namaLengkap: nama }
+
+    if (tempat_lahir) { insertData.tempatLahir = tempat_lahir; updateData.tempatLahir = tempat_lahir }
+    if (tanggal_lahir) { insertData.tanggalLahir = tanggal_lahir; updateData.tanggalLahir = tanggal_lahir }
+    if (jenis_kelamin) { insertData.jenisKelamin = jenis_kelamin; updateData.jenisKelamin = jenis_kelamin }
+    if (agama) { insertData.agama = agama; updateData.agama = agama }
+    if (pekerjaan) { insertData.jenisPekerjaan = pekerjaan; updateData.jenisPekerjaan = pekerjaan }
+    if (alamat) { insertData.alamat = alamat; updateData.alamat = alamat }
+
+    await db.insert(penduduk).values(insertData).onConflictDoUpdate({
+      target: penduduk.nik,
+      set: updateData
+    })
 
     await db.insert(suratPengajuan).values({
       refNumber,
@@ -91,15 +128,53 @@ export async function suratRoutes(fastify: FastifyInstance) {
       keperluan,
       noWa: no_wa,
       dokumenPath,
+      metadata: {
+        namaKk: nama_kk || '',
+        namaKtp: nama_ktp || '',
+        namaProgram: nama_program || '',
+        tahunProgram: tahun_program || '',
+        namaUsaha: nama_usaha || '',
+        sektorUsaha: sektor_usaha || '',
+        nomorKontak: nomor_kontak || '',
+        bidangUsaha: bidang_usaha || '',
+        alamatUsaha: alamat_usaha || '',
+        lamaUsaha: lama_usaha || '',
+        penandatangan: penandatangan || 'Kepala Desa',
+        program_usaha: program_usaha === 'true'
+      } as any
     })
 
     return reply.status(201).send({ ref_number: refNumber, message: 'Pengajuan surat berhasil dikirim' })
   })
 
+  // GET /api/surat/cek-penduduk/:nik (public)
+  fastify.get('/api/surat/cek-penduduk/:nik', async (request, reply) => {
+    const { nik } = request.params as { nik: string }
+
+    if (!/^\d{3,16}$/.test(nik)) {
+      return reply.status(400).send({ error: 'NIK tidak valid' })
+    }
+
+    const [warga] = await db
+      .select({
+        namaLengkap: penduduk.namaLengkap,
+        noKk: penduduk.noKk
+      })
+      .from(penduduk)
+      .where(eq(penduduk.nik, nik))
+      .limit(1)
+
+    if (!warga) {
+      return { found: false }
+    }
+
+    return { found: true, namaLengkap: warga.namaLengkap, noKk: warga.noKk }
+  })
+
   // GET /api/surat/cek/:nik (public)
   fastify.get('/api/surat/cek/:nik', async (request, reply) => {
     const { nik } = request.params as { nik: string }
-    
+
     if (!/^\d{3,16}$/.test(nik)) {
       return reply.status(400).send({ error: 'NIK tidak valid' })
     }
@@ -120,7 +195,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
     if (result.length === 0) {
       return reply.status(404).send({ error: 'Tidak ada surat yang ditemukan untuk NIK ini' })
     }
-    
+
     return result
   })
 
@@ -196,10 +271,15 @@ export async function suratRoutes(fastify: FastifyInstance) {
     return { message: `Status diperbarui menjadi "${status}"` }
   })
 
-  // GET /api/surat/:id/download-surat (public)
+  // GET /api/surat/:id/download-surat (public — completed letters are downloadable
+  // without login, but a custom nomor_surat override is only honored for admins;
+  // otherwise anyone could stamp an arbitrary official reference number onto a
+  // real village letter just by adding a query param.)
   fastify.get('/api/surat/:id/download-surat', async (request, reply) => {
     const { id } = request.params as { id: string }
-    
+    const authToken = request.headers['authorization']?.replace('Bearer ', '')
+    const isAdmin = !!(authToken && getToken(authToken))
+
     const [surat] = await db
       .select()
       .from(suratPengajuan)
@@ -227,39 +307,202 @@ export async function suratRoutes(fastify: FastifyInstance) {
       templateName = 'Surat_Domisili.docx'
     } else if (surat.jenisSurat.toLowerCase().includes('beda nama')) {
       templateName = 'Surat_Beda_Nama.docx'
+    } else if (surat.jenisSurat.toLowerCase().includes('pernyataan kesediaan')) {
+      templateName = 'Surat Pernyataan Kesediaan Mengikuti Program.docx'
+    } else if (surat.jenisSurat.toLowerCase().includes('usaha')) {
+      templateName = 'SKU.docx'
     } else {
-      // Default fallback jika tidak match
-      templateName = 'Surat_Domisili.docx'
+      // No silent fallback: generating the wrong official letter is worse than
+      // failing loudly. All four jenis_surat values offered on the public form
+      // match one of the branches above — reaching here means a jenis_surat
+      // was introduced (or edited into the database) without a matching template.
+      return reply.status(400).send({ error: `Tidak ada template dokumen untuk jenis surat "${surat.jenisSurat}"` })
     }
 
-    const templatePath = path.resolve(`../web/public/templates/${templateName}`)
+    function findTemplatePath(fileName: string): string {
+      const candidates = [
+        path.resolve(`../web/public/templates/${fileName}`),
+        path.resolve(`apps/web/public/templates/${fileName}`),
+        path.resolve(process.cwd(), `../web/public/templates/${fileName}`),
+        path.resolve(process.cwd(), `apps/web/public/templates/${fileName}`),
+      ]
+      for (const c of candidates) {
+        if (fs.existsSync(c)) return c
+      }
+      return candidates[0]
+    }
+
+    const templatePath = findTemplatePath(templateName)
     if (!fs.existsSync(templatePath)) {
       return reply.status(404).send({ error: 'Template surat tidak ditemukan' })
     }
 
     try {
-      const content = fs.readFileSync(templatePath, 'binary')
+      const content = getCachedTemplate(templatePath)
       const zip = new PizZip(content)
+
+      const opts = {
+        centered: false,
+        getImage(tagValue: string) {
+          return getCachedImage(tagValue)
+        },
+        getSize() {
+          return [130, 70] // Width and height of the signature (dikurangi agar tidak terlalu besar)
+        }
+      }
+      const imageModule = new ImageModule(opts)
+
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
+        modules: [imageModule],
+        nullGetter(part) {
+          if (!part.module) {
+            return "";
+          }
+          if (part.module === "rawxml") {
+            return "";
+          }
+          return "";
+        }
       })
 
-      // Set data untuk di-replace di dalam template Word
+      let metadata: any = {}
+      if (typeof surat.metadata === 'string') {
+        try { metadata = JSON.parse(surat.metadata) } catch (e) { }
+      } else if (surat.metadata) {
+        metadata = surat.metadata
+      }
+
+      const penandatangan = metadata?.penandatangan || 'Kepala Desa';
+      const ttdFileName = penandatangan === 'Sekretaris Desa' ? 'ttd_sekdes.png' : 'ttd kades.png';
+      const ttdPath = findTemplatePath(ttdFileName);
+
+
+      const namaPemohon = warga?.namaLengkap || surat.nama;
+      let formattedTanggalLahir = warga?.tanggalLahir || '-';
+      if (warga?.tanggalLahir) {
+        try {
+          const tgl = new Date(warga.tanggalLahir);
+          if (!isNaN(tgl.getTime())) {
+            formattedTanggalLahir = tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          }
+        } catch (e) { }
+      }
+      const tempatTglLahir = `${warga?.tempatLahir || '-'}, ${formattedTanggalLahir}`;
+
+      const now = new Date()
+      const tglSurat = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      const berlakuDate = new Date(now)
+      berlakuDate.setMonth(berlakuDate.getMonth() + 3) // Berlaku 3 bulan otomatis
+      const tglBerlaku = berlakuDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      const toTitleCase = (str: string | undefined | null) => {
+        if (!str) return '';
+        return str.toString().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+      };
+
+      const toUpper = (str: string | undefined | null) => (str || '').toString().toUpperCase();
+
+      const customNomorSurat = isAdmin ? (request.query as any).nomor_surat : undefined
+
+      // Render dokumen dengan data
       doc.render({
-        nama: warga?.namaLengkap || surat.nama,
+        nama: toUpper(namaPemohon),
+        NAMA: toUpper(namaPemohon),
         nik: surat.nik,
+        NIK: surat.nik,
         noKk: surat.noKk,
-        tempatLahir: warga?.tempatLahir || '',
+        NO_KK: surat.noKk,
+        keperluan: toUpper(surat.keperluan),
+        KEPERLUAN: toUpper(surat.keperluan),
+        tempatLahir: toTitleCase(warga?.tempatLahir),
         tanggalLahir: warga?.tanggalLahir || '',
-        jenisKelamin: warga?.jenisKelamin || '',
-        agama: warga?.agama || '',
-        pekerjaan: warga?.jenisPekerjaan || '',
-        alamat: warga?.alamat || '',
+        tempat_tanggal_lahir: toTitleCase(tempatTglLahir),
+        TEMPAT_TANGGAL_LAHIR: toTitleCase(tempatTglLahir),
+        tempatTanggalLahir: toTitleCase(tempatTglLahir),
+        jenisKelamin: toTitleCase(warga?.jenisKelamin),
+        JENIS_KELAMIN: toTitleCase(warga?.jenisKelamin),
+        statusPerkawinan: toTitleCase(warga?.statusPerkawinan),
+        STATUS_PERKAWINAN: toTitleCase(warga?.statusPerkawinan),
+        agama: toTitleCase(warga?.agama),
+        AGAMA: toTitleCase(warga?.agama),
+        pekerjaan: toTitleCase(warga?.jenisPekerjaan),
+        PEKERJAAN: toTitleCase(warga?.jenisPekerjaan),
+        alamat: toTitleCase(warga?.alamat),
+        ALAMAT: toTitleCase(warga?.alamat),
         rt: warga?.rt || '',
         rw: warga?.rw || '',
-        keperluan: surat.keperluan,
-        tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        tanggal: tglSurat,
+        tanggal_surat: tglSurat,
+        TANGGAL_SURAT: tglSurat,
+
+        namaKk: toTitleCase(metadata?.namaKk),
+        namaKtp: toTitleCase(metadata?.namaKtp),
+        tempatLahirKk: toTitleCase(warga?.tempatLahir),
+        tanggalLahirKk: warga?.tanggalLahir || '',
+
+        nama_program: toTitleCase(metadata?.namaProgram),
+        NAMA_PROGRAM: toTitleCase(metadata?.namaProgram),
+        namaProgram: toTitleCase(metadata?.namaProgram),
+
+        tahun_program: metadata?.tahunProgram || '',
+        TAHUN_PROGRAM: metadata?.tahunProgram || '',
+        tahunProgram: metadata?.tahunProgram || '',
+
+        is_usaha: metadata?.program_usaha === 'true' || metadata?.program_usaha === true,
+        IS_USAHA: metadata?.program_usaha === 'true' || metadata?.program_usaha === true,
+        
+        status_peserta: (metadata?.program_usaha === 'true' || metadata?.program_usaha === true) ? 'Pemilik Usaha tersebut' : 'calon peserta',
+
+        nama_usaha: toTitleCase(metadata?.namaUsaha) || '-',
+        NAMA_USAHA: toTitleCase(metadata?.namaUsaha) || '-',
+        namaUsaha: toTitleCase(metadata?.namaUsaha) || '-',
+
+        sektor_usaha: toTitleCase(metadata?.sektorUsaha) || '-',
+        SEKTOR_USAHA: toTitleCase(metadata?.sektorUsaha) || '-',
+        sektorUsaha: toTitleCase(metadata?.sektorUsaha) || '-',
+
+        nomor_kontak: metadata?.nomorKontak || '-',
+        NOMOR_KONTAK: metadata?.nomorKontak || '-',
+        nomorKontak: metadata?.nomorKontak || '-',
+
+        bidang_usaha: toTitleCase(metadata?.bidangUsaha),
+        BIDANG_USAHA: toTitleCase(metadata?.bidangUsaha),
+        bidangUsaha: toTitleCase(metadata?.bidangUsaha),
+
+        alamat_usaha: toTitleCase(metadata?.alamatUsaha),
+        ALAMAT_USAHA: toTitleCase(metadata?.alamatUsaha),
+        alamatUsaha: toTitleCase(metadata?.alamatUsaha),
+
+        lama_usaha: metadata?.lamaUsaha || '',
+        LAMA_USAHA: metadata?.lamaUsaha || '',
+        lamaUsaha: metadata?.lamaUsaha || '',
+
+        tanggal_berlaku: tglBerlaku,
+        TANGGAL_BERLAKU: tglBerlaku,
+        tanggalBerlaku: tglBerlaku,
+        nomor_surat: customNomorSurat || surat.refNumber,
+        NOMOR_SURAT: customNomorSurat || surat.refNumber,
+
+        jabatan_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        JABATAN_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'SEKRETARIS DESA' : 'KEPALA DESA',
+        nama_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        NAMA_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        nip_penandatangan: metadata?.penandatangan === 'Sekretaris Desa' ? '19820212 201001 1 015' : '-', // Ganti NIP Sekdes di sini
+        NIP_PENANDATANGAN: metadata?.penandatangan === 'Sekretaris Desa' ? '19820212 201001 1 015' : '-', // Ganti NIP Kepala Desa jika ada
+        nipd: '',
+        NIPD: '',
+
+        namaPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        NamaPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        NAMA_KEPALA_DESA: metadata?.penandatangan === 'Sekretaris Desa' ? 'WAWAN SAEPUDIN' : 'WAHYU KOMARA',
+        jabatan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        Jabatan: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        jabatanPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        JabatanPejabat: metadata?.penandatangan === 'Sekretaris Desa' ? 'Sekretaris Desa' : 'Kepala Desa',
+        ttd: fs.existsSync(ttdPath) ? ttdPath : null
       })
 
       const buf = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' })
@@ -267,9 +510,15 @@ export async function suratRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `attachment; filename="${surat.jenisSurat}_${surat.nama}.docx"`)
       reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
       return reply.send(buf)
-    } catch (error) {
+    } catch (error: any) {
+      // Logged server-side only — this route is public (no auth), so the response
+      // must never include the stack trace (file paths, internals) or it leaks to
+      // anyone who can reach this endpoint.
       console.error('Error generating document:', error)
-      return reply.status(500).send({ error: 'Gagal membuat dokumen surat' })
+      const details = error.properties && error.properties.errors
+        ? error.properties.errors.map((e: any) => e.message).join(', ')
+        : error.message;
+      return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details })
     }
   })
 }

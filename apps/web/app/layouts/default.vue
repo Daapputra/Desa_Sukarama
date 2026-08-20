@@ -5,5 +5,6 @@
       <slot />
     </main>
     <SiteFooter />
+    <ChatWidget />
   </div>
 </template>

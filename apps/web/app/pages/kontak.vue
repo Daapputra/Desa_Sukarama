@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { MapPin, Phone, Clock, Mail, Send, ChevronRight, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { MapPin, Phone, Clock, Mail, Send, ChevronRight, AlertCircle, CheckCircle2, MessageCircle, Loader2 } from 'lucide-vue-next'
 
-useHead({ title: 'Kontak — Desa Sukarama' })
+useHead({
+  title: 'Kontak & Aspirasi Warga — Desa Sukarama',
+  meta: [
+    { name: 'description', content: 'Hubungi kantor Pemerintah Desa Sukarama untuk layanan informasi publik, bantuan administrasi, atau sampaikan aspirasi dan saran Anda secara langsung.' }
+  ]
+})
 
 const { apiPost } = useApi()
 
@@ -17,8 +22,8 @@ const error = ref('')
 
 async function handleSubmit() {
   error.value = ''
-  if (!form.nama || !form.kontak || !form.pesan) {
-    error.value = 'Semua field harus diisi'
+  if (!form.nama.trim() || !form.kontak.trim() || !form.pesan.trim()) {
+    error.value = 'Semua kolom bertanda bintang (*) wajib diisi'
     return
   }
   submitting.value = true
@@ -26,107 +31,217 @@ async function handleSubmit() {
     await apiPost('/api/kontak', form)
     success.value = true
     Object.assign(form, { nama: '', kontak: '', pesan: '' })
-    setTimeout(() => (success.value = false), 5000)
+    setTimeout(() => (success.value = false), 6000)
   } catch (err: any) {
-    error.value = err.message || 'Gagal mengirim pesan'
+    error.value = err.message || 'Gagal mengirim pesan, silakan coba lagi.'
   } finally {
     submitting.value = false
   }
 }
 
 const contactInfo = [
-  { icon: MapPin, title: 'Alamat', desc: 'Jl. Desa Sukarama No. 01\nKec. Bojongpicung, Kab. Cianjur\nJawa Barat 43263' },
-  { icon: Phone, title: 'Telepon', desc: '(0263) 123-4567' },
-  { icon: Mail, title: 'Email', desc: 'desa.sukarama@cianjurkab.go.id' },
-  { icon: Clock, title: 'Jam Kerja', desc: 'Senin – Jumat: 08.00 – 15.00 WIB\nSabtu – Minggu: Tutup' },
+  { icon: MapPin, title: 'Alamat Kantor Desa', desc: 'Jl. Raya Sukarama No. 01, Kec. Bojongpicung, Kab. Cianjur, Jawa Barat 43283' },
+  { icon: Phone, title: 'Telepon / WhatsApp Layanan', desc: '+62 858-1779-3254' },
+  { icon: Mail, title: 'Email Resmi', desc: 'desasukarama1122@yahoo.com' },
+  { icon: Clock, title: 'Jam Pelayanan Kantor', desc: 'Senin – Jumat: 08.00 – 15.00 WIB\nSabtu – Minggu & Hari Libur: Tutup' },
 ]
+
+// Scroll reveal directive with multiple animation types
+const vScrollReveal = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined') return;
+    const type = binding.value?.type || 'up'
+    let delay = binding.value?.delay || 0
+    const stagger = binding.value?.stagger
+
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+
+    if (stagger) {
+      Array.from(el.children).forEach((c: any, i) => {
+        c.style.opacity = '0'
+        c.style.transform = 'translateY(120px)'
+        c.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}`
+        c.style.transitionDelay = `${delay + (i * 150)}ms`
+      })
+    } else {
+      el.style.opacity = '0'
+      el.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}, filter 1s ease`
+      el.style.filter = 'blur(8px)'
+      if (delay) el.style.transitionDelay = `${delay}ms`
+
+      switch (type) {
+        case 'left': el.style.transform = 'translateX(-120px)'; break
+        case 'right': el.style.transform = 'translateX(120px)'; break
+        case 'zoom': el.style.transform = 'scale(0.85) translateY(40px)'; break
+        default: el.style.transform = 'translateY(120px)'
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(() => {
+          if (stagger) {
+            Array.from(el.children).forEach((c: any) => {
+              c.style.opacity = '1'
+              c.style.transform = 'translate(0)'
+            })
+          } else {
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0) scale(1)'
+            el.style.filter = 'blur(0)'
+          }
+        })
+        observer.unobserve(el)
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' })
+    
+    setTimeout(() => {
+      observer.observe(el)
+    }, 50)
+  }
+}
 </script>
 
 <template>
-  <div>
-    <!-- Page Hero -->
-    <section class="relative py-20 bg-gradient-to-br from-green-950 via-green-900 to-emerald-800 overflow-hidden">
-      <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-20 right-10 w-64 h-64 bg-green-400 rounded-full blur-3xl"></div>
-      </div>
+  <div class="min-h-screen bg-slate-50/60 pb-24">
+    <!-- Hero Section -->
+    <section class="relative py-20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 overflow-hidden text-white">
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
       <div class="container-app relative z-10 text-center">
-        <div class="flex items-center justify-center gap-2 text-green-300 text-xs font-medium mb-4">
+        <div class="inline-flex items-center gap-2 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-4 backdrop-blur-sm">
           <NuxtLink to="/" class="hover:text-white transition-colors">Beranda</NuxtLink>
           <ChevronRight class="w-3 h-3" />
-          <span class="text-white">Kontak</span>
+          <span>Kontak & Aspirasi</span>
         </div>
-        <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-3">Hubungi Kami</h1>
-        <p class="text-green-200/70 text-sm max-w-lg mx-auto">Silakan kirim pesan atau kunjungi kantor Desa Sukarama</p>
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3" v-scroll-reveal="{ type: 'zoom' }">
+          Hubungi Pemerintah Desa
+        </h1>
+        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed" v-scroll-reveal="{ delay: 150 }">
+          Kirim saran, aspirasi, atau pertanyaan langsung ke perangkat Desa Sukarama. Kami siap melayani dengan sepenuh hati.
+        </p>
       </div>
     </section>
 
-    <section class="py-12 md:py-16">
+    <!-- Content Section -->
+    <section class="py-10 md:py-14">
       <div class="container-app">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <!-- Info -->
-          <div>
-            <h2 class="text-xl font-bold text-slate-900 mb-6">Informasi Kontak</h2>
-            <div class="space-y-6 mb-10">
-              <div v-for="item in contactInfo" :key="item.title" class="flex gap-4">
-                <div class="w-11 h-11 rounded-xl bg-green-50 text-green-800 flex items-center justify-center shrink-0">
-                  <component :is="item.icon" class="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 class="text-sm font-bold text-slate-900 mb-0.5">{{ item.title }}</h4>
-                  <p class="text-sm text-slate-500 whitespace-pre-line leading-relaxed">{{ item.desc }}</p>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <!-- Information & Map (Left Col) -->
+          <div class="lg:col-span-5 space-y-6" v-scroll-reveal="{ type: 'right' }">
+            <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+              <h2 class="text-lg font-black text-slate-900 tracking-tight mb-6 pb-4 border-b border-slate-100">
+                Informasi & Saluran Kontak
+              </h2>
+
+              <div class="space-y-5 mb-8">
+                <div v-for="item in contactInfo" :key="item.title" class="flex gap-3.5">
+                  <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <component :is="item.icon" class="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold text-slate-800 mb-0.5">{{ item.title }}</h4>
+                    <p class="text-xs text-slate-500 whitespace-pre-line leading-relaxed">{{ item.desc }}</p>
+                  </div>
                 </div>
               </div>
+
+              <!-- Direct WhatsApp Button -->
+              <a
+                href="https://wa.me/6281234567890?text=Halo%20Admin%20Desa%20Sukarama,%20saya%20ingin%20bertanya%20mengenai%20layanan%20desa..."
+                target="_blank"
+                rel="noopener noreferrer"
+                class="w-full py-3 rounded-2xl bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-950/20 transition-all"
+              >
+                <MessageCircle class="w-4 h-4" />
+                <span>Chat Langsung via WhatsApp</span>
+              </a>
             </div>
 
-            <!-- Peta -->
-            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <MapPin class="w-5 h-5 text-green-800" /> Lokasi
-            </h3>
-            <div class="rounded-2xl overflow-hidden border border-border h-[300px]">
-              <iframe
-                src="https://www.openstreetmap.org/export/embed.html?bbox=107.09%2C-6.84%2C107.11%2C-6.82&layer=mapnik"
-                width="100%"
-                height="100%"
-                style="border:none;"
-                loading="lazy"
-                title="Peta lokasi Desa Sukarama"
-              ></iframe>
+            <!-- Map Location -->
+            <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <MapPin class="w-4 h-4 text-emerald-700" /> Lokasi Kantor Desa
+              </h3>
+              <div class="rounded-2xl overflow-hidden border border-slate-200 h-[220px]">
+                <iframe
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=107.20%2C-6.87%2C107.28%2C-6.82&layer=mapnik"
+                  width="100%"
+                  height="100%"
+                  style="border:none;"
+                  loading="lazy"
+                  title="Peta lokasi kantor Desa Sukarama"
+                ></iframe>
+              </div>
             </div>
           </div>
 
-          <!-- Form -->
-          <div>
-            <h2 class="text-xl font-bold text-slate-900 mb-6">Kirim Pesan</h2>
+          <!-- Contact / Aspiration Form (Right Col) -->
+          <div class="lg:col-span-7" v-scroll-reveal="{ type: 'left' }">
+            <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm">
+              <h2 class="text-xl font-black text-slate-900 tracking-tight mb-2">
+                Formulir Pesan & Aspirasi
+              </h2>
+              <p class="text-xs text-slate-500 mb-8 pb-4 border-b border-slate-100">
+                Setiap pesan yang masuk akan diteruskan langsung ke meja pelayanan dan pimpinan desa.
+              </p>
 
-            <div v-if="success" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 text-green-700 text-sm mb-6">
-              <CheckCircle class="w-4 h-4 shrink-0" /> Pesan berhasil dikirim. Terima kasih!
-            </div>
-            <div v-if="error" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 text-sm mb-6">
-              <AlertCircle class="w-4 h-4 shrink-0" /> {{ error }}
-            </div>
+              <!-- Success Alert -->
+              <div v-if="success" class="flex items-center gap-3 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs mb-6 animate-fade-in">
+                <CheckCircle2 class="w-5 h-5 text-emerald-700 shrink-0" />
+                <div>
+                  <h4 class="font-bold">Pesan Anda Berhasil Terkirim!</h4>
+                  <p class="text-emerald-700 mt-0.5">Terima kasih telah berkontribusi memberikan saran untuk kemajuan Desa Sukarama.</p>
+                </div>
+              </div>
 
-            <form class="bg-white rounded-2xl border border-border p-8" @submit.prevent="handleSubmit">
-              <div class="mb-6">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
-                <input v-model="form.nama" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nama Anda">
+              <!-- Error Alert -->
+              <div v-if="error" class="flex items-center gap-2 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs mb-6 animate-fade-in">
+                <AlertCircle class="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{{ error }}</span>
               </div>
-              <div class="mb-6">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">No. HP / Email <span class="text-red-500">*</span></label>
-                <input v-model="form.kontak" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nomor HP atau alamat email">
-              </div>
-              <div class="mb-8">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Pesan <span class="text-red-500">*</span></label>
-                <textarea v-model="form.pesan" rows="5" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all resize-y" placeholder="Tulis pesan Anda..."></textarea>
-              </div>
-              <button
-                type="submit"
-                :disabled="submitting"
-                class="w-full py-3.5 rounded-full bg-green-900 text-white font-semibold text-sm hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-900/25 flex items-center justify-center gap-2"
-              >
-                <Send class="w-4 h-4" />
-                {{ submitting ? 'Mengirim...' : 'Kirim Pesan' }}
-              </button>
-            </form>
+
+              <form @submit.prevent="handleSubmit">
+                <div class="mb-5">
+                  <label class="block text-xs font-bold text-slate-700 mb-2">Nama Lengkap <span class="text-rose-500">*</span></label>
+                  <input
+                    v-model="form.nama"
+                    type="text"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none transition-all"
+                    placeholder="Nama lengkap Anda"
+                  />
+                </div>
+
+                <div class="mb-5">
+                  <label class="block text-xs font-bold text-slate-700 mb-2">Nomor HP / WhatsApp / Email <span class="text-rose-500">*</span></label>
+                  <input
+                    v-model="form.kontak"
+                    type="text"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none transition-all"
+                    placeholder="Contoh: 081234567890 atau email@domain.com"
+                  />
+                </div>
+
+                <div class="mb-8">
+                  <label class="block text-xs font-bold text-slate-700 mb-2">Pesan, Saran, atau Pertanyaan <span class="text-rose-500">*</span></label>
+                  <textarea
+                    v-model="form.pesan"
+                    rows="5"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none resize-y transition-all"
+                    placeholder="Tuliskan aspirasi, kendala administrasi, atau permohonan informasi secara lengkap..."
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  :disabled="submitting"
+                  class="w-full py-4 rounded-2xl bg-emerald-900 hover:bg-emerald-800 active:scale-[0.99] text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all disabled:opacity-50"
+                >
+                  <Loader2 v-if="submitting" class="w-4 h-4 animate-spin" />
+                  <Send v-else class="w-4 h-4" />
+                  <span>{{ submitting ? 'Mengirim Pesan...' : 'Kirim Aspirasi / Pesan' }}</span>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

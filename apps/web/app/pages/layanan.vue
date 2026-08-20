@@ -1,8 +1,19 @@
 <script setup lang="ts">
-import { ChevronRight, UploadCloud, Search, FileText, CheckCircle, AlertCircle, Loader2, Download, Upload, Clock, HelpCircle } from 'lucide-vue-next'
+import {
+  ChevronRight, Search, FileText, CheckCircle2, AlertCircle, Loader2, Download,
+  Upload, UserCheck, ShieldCheck, Building2, FileCheck2, Sparkles, FileQuestion, Check, X
+} from 'lucide-vue-next'
+import { formatTanggal, getStatusColor } from '~/utils/format'
 
-useHead({ title: 'Layanan Surat Online — Desa Sukarama' })
+useHead({
+  title: 'Layanan Surat Online — Desa Sukarama',
+  meta: [
+    { name: 'description', content: 'Ajukan surat administrasi desa secara online seperti Surat Domisili, SKU, Surat Beda Nama, dan lacak status secara instan dengan NIK.' }
+  ]
+})
 
+const config = useRuntimeConfig()
+const apiBase = config.public.apiBase || 'http://localhost:3005'
 const { apiPost, apiGet } = useApi()
 const route = useRoute()
 
@@ -16,30 +27,154 @@ const form = reactive({
   jenis_surat: '',
   keperluan: '',
   no_wa: '',
+  nama_kk: '',
+  nama_ktp: '',
+  tempat_lahir: '',
+  tanggal_lahir: '',
+  jenis_kelamin: '',
+  agama: 'Islam',
+  pekerjaan: '',
+  alamat: '',
+  nama_program: '',
+  tahun_program: new Date().getFullYear().toString(),
+  nama_usaha: '',
+  sektor_usaha: '',
+  nomor_kontak: '',
+  bidang_usaha: '',
+  alamat_usaha: '',
+  lama_usaha: '',
+  program_usaha: false,
+  penandatangan: 'Kepala Desa',
   dokumen: null as File | null,
 })
 
+const nikFound = ref<boolean | null>(null)
+const checkingNik = ref(false)
+const residentDetail = ref<{ namaLengkap: string; noKk: string } | null>(null)
+
+// Format input NIK (Numeric only, max 16)
+function onNikInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  form.nik = target.value.replace(/\D/g, '').slice(0, 16)
+}
+
+function onKkInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  form.no_kk = target.value.replace(/\D/g, '').slice(0, 16)
+}
+
+// Watch NIK change
+watch(() => form.nik, async (newNik) => {
+  if (newNik && newNik.length === 16) {
+    checkingNik.value = true
+    try {
+      const res = await apiGet<any>(`/api/surat/cek-penduduk/${newNik}`)
+      if (res.found) {
+        nikFound.value = true
+        residentDetail.value = { namaLengkap: res.namaLengkap, noKk: res.noKk }
+        form.nama = res.namaLengkap
+        form.no_kk = res.noKk
+      } else {
+        nikFound.value = false
+        residentDetail.value = null
+      }
+    } catch {
+      nikFound.value = false
+      residentDetail.value = null
+    } finally {
+      checkingNik.value = false
+    }
+  } else {
+    nikFound.value = null
+    residentDetail.value = null
+  }
+})
+
 const jenisSuratOptions = [
-  'Surat Keterangan Domisili',
-  'Surat Keterangan Tidak Mampu',
-  'Surat Keterangan Usaha',
-  'Surat Pengantar KTP',
-  'Surat Pengantar KK',
-  'Surat Keterangan Pindah',
-  'Surat Keterangan Kelahiran',
-  'Surat Keterangan Kematian',
-  'Surat Keterangan Lainnya',
+  {
+    id: 'Surat Keterangan Domisili',
+    title: 'Surat Keterangan Domisili',
+    desc: 'Surat keterangan bukti domisili tempat tinggal sah di wilayah Desa Sukarama.',
+    icon: Building2,
+    badge: 'Paling Sering Digunakan'
+  },
+  {
+    id: 'Surat Keterangan Usaha',
+    title: 'Surat Keterangan Usaha (SKU)',
+    desc: 'Surat legalitas keterangan kepemilikan usaha aktif di desa untuk pinjaman/izin.',
+    icon: FileCheck2,
+    badge: 'Untuk Pelaku Usaha'
+  },
+  {
+    id: 'Surat Beda Nama',
+    title: 'Surat Beda Nama (KTP vs KK)',
+    desc: 'Klarifikasi resmi perbedaan ejaan nama antara Kartu Keluarga dan KTP/Ijazah.',
+    icon: FileQuestion,
+    badge: 'Koreksi Data'
+  },
+  {
+    id: 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu',
+    title: 'Surat Pernyataan Program',
+    desc: 'Surat pernyataan keikutsertaan program bantuan/kegiatan pemberdayaan.',
+    icon: Sparkles,
+    badge: 'Program Pemerintah'
+  },
 ]
 
 const submitting = ref(false)
 const submitResult = ref<{ ref_number: string } | null>(null)
 const submitError = ref('')
 
+let errorTimeout: any = null
+function showError(msg: string) {
+  submitError.value = msg
+  if (errorTimeout) clearTimeout(errorTimeout)
+  errorTimeout = setTimeout(() => { submitError.value = '' }, 4000)
+}
+
 async function handleSubmit() {
   submitError.value = ''
   if (!form.nama || !form.nik || !form.no_kk || !form.jenis_surat || !form.keperluan || !form.no_wa) {
-    submitError.value = 'Semua field wajib harus diisi'
+    showError('Mohon lengkapi semua kolom wajib bertanda bintang (*)')
     return
+  }
+
+  if (form.nik.length < 16) {
+    showError('NIK harus berjumlah 16 digit angka')
+    return
+  }
+
+  if (form.no_kk.length < 16) {
+    showError('Nomor KK harus berjumlah 16 digit angka')
+    return
+  }
+
+  if (nikFound.value === false) {
+    if (!form.tempat_lahir || !form.tanggal_lahir || !form.jenis_kelamin || !form.agama || !form.pekerjaan || !form.alamat) {
+      showError('NIK Anda baru, mohon lengkapi biodata kependudukan tambahan')
+      return
+    }
+  }
+
+  if (form.jenis_surat === 'Surat Beda Nama') {
+    if (!form.nama_kk || !form.nama_ktp) {
+      showError('Nama di KK dan Nama di KTP wajib diisi untuk Surat Beda Nama')
+      return
+    }
+  }
+
+  if (form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu') {
+    if (!form.nama_program || !form.tahun_program) {
+      showError('Nama Program dan Tahun Program wajib diisi')
+      return
+    }
+  }
+
+  if (form.jenis_surat === 'Surat Keterangan Usaha') {
+    if (!form.bidang_usaha || !form.alamat_usaha || !form.lama_usaha) {
+      showError('Bidang usaha, alamat usaha, dan lama usaha wajib diisi')
+      return
+    }
   }
 
   submitting.value = true
@@ -51,12 +186,45 @@ async function handleSubmit() {
     fd.append('jenis_surat', form.jenis_surat)
     fd.append('keperluan', form.keperluan)
     fd.append('no_wa', form.no_wa)
-    if (form.dokumen) fd.append('dokumen', form.dokumen)
+
+    if (form.jenis_surat === 'Surat Beda Nama') {
+      fd.append('nama_kk', form.nama_kk)
+      fd.append('nama_ktp', form.nama_ktp)
+    }
+
+    if (form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu') {
+      fd.append('nama_program', form.nama_program)
+      fd.append('tahun_program', form.tahun_program)
+      fd.append('program_usaha', form.program_usaha ? 'true' : 'false')
+      fd.append('nama_usaha', form.nama_usaha)
+      fd.append('sektor_usaha', form.sektor_usaha)
+      fd.append('nomor_kontak', form.nomor_kontak)
+    }
+
+    if (form.jenis_surat === 'Surat Keterangan Usaha') {
+      fd.append('bidang_usaha', form.bidang_usaha)
+      fd.append('alamat_usaha', form.alamat_usaha)
+      fd.append('lama_usaha', form.lama_usaha)
+    }
+
+    if (nikFound.value === false) {
+      fd.append('tempat_lahir', form.tempat_lahir)
+      fd.append('tanggal_lahir', form.tanggal_lahir)
+      fd.append('jenis_kelamin', form.jenis_kelamin)
+      fd.append('agama', form.agama)
+      fd.append('pekerjaan', form.pekerjaan)
+      fd.append('alamat', form.alamat)
+    }
+
+    fd.append('penandatangan', form.penandatangan)
+    if (form.dokumen) {
+      fd.append('dokumen', form.dokumen)
+    }
 
     const res = await apiPost<{ ref_number: string }>('/api/surat', fd)
     submitResult.value = res
   } catch (err: any) {
-    submitError.value = err.message || 'Gagal mengirim pengajuan'
+    submitError.value = err.message || 'Gagal mengirim pengajuan surat'
   } finally {
     submitting.value = false
   }
@@ -69,7 +237,7 @@ function handleFileChange(e: Event) {
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
   if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
-    submitError.value = 'Dokumen harus berupa gambar atau PDF dengan ukuran maksimal 5 MB'
+    submitError.value = 'Dokumen lampiran harus berupa JPG, PNG, atau PDF (maksimal 5 MB)'
     input.value = ''
     form.dokumen = null
     return
@@ -81,230 +249,621 @@ function handleFileChange(e: Event) {
 // Cek status state
 const refInput = ref('')
 const checking = ref(false)
-const statusResult = ref<any>(null)
+const statusResult = ref<any[] | null>(null)
 const statusError = ref('')
 
 async function handleCekStatus() {
   statusError.value = ''
   statusResult.value = null
-  if (!refInput.value.trim()) {
-    statusError.value = 'Masukkan NIK Anda'
+  const cleanedNik = refInput.value.replace(/\D/g, '').trim()
+  if (!cleanedNik) {
+    statusError.value = 'Silakan masukkan 16 digit NIK Anda'
     return
   }
   checking.value = true
   try {
-    const res = await apiGet(`/api/surat/cek/${refInput.value.trim()}`)
-    statusResult.value = res // res is an array now
+    const res = await apiGet<any[]>(`/api/surat/cek/${cleanedNik}`)
+    statusResult.value = res
   } catch (err: any) {
-    statusError.value = err.message || 'Tidak ada pengajuan surat dengan NIK ini'
+    statusError.value = err.message || 'Tidak ada riwayat pengajuan surat untuk NIK tersebut'
   } finally {
     checking.value = false
   }
 }
 
+function getDownloadUrl(suratId: number) {
+  return `${apiBase}/api/surat/${suratId}/download-surat`
+}
+
 const steps = [
-  { num: '1', title: 'Isi Formulir', desc: 'Lengkapi data diri dan jenis surat' },
-  { num: '2', title: 'Upload Dokumen', desc: 'Lampirkan dokumen pendukung' },
-  { num: '3', title: 'Cek Berkala', desc: 'Pantau status surat melalui NIK Anda' },
+  { num: '1', title: 'Input NIK & Data', desc: 'Autofill otomatis dari data desa' },
+  { num: '2', title: 'Pilih Jenis Surat', desc: 'Domisili, SKU, Beda Nama, dll' },
+  { num: '3', title: 'Verifikasi & TTD', desc: 'Diproses online oleh perangkat desa' },
+  { num: '4', title: 'Unduh Dokumen', desc: 'Langsung download file Word (.docx)' },
 ]
+
+// Scroll reveal directive with multiple animation types
+const vScrollReveal = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined') return;
+    const type = binding.value?.type || 'up'
+    let delay = binding.value?.delay || 0
+    const stagger = binding.value?.stagger
+
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+
+    if (stagger) {
+      Array.from(el.children).forEach((c: any, i) => {
+        c.style.opacity = '0'
+        c.style.transform = 'translateY(120px)'
+        c.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}`
+        c.style.transitionDelay = `${delay + (i * 150)}ms`
+      })
+    } else {
+      el.style.opacity = '0'
+      el.style.transition = `opacity 1.2s ease, transform 1.2s ${easing}, filter 1s ease`
+      el.style.filter = 'blur(8px)'
+      if (delay) el.style.transitionDelay = `${delay}ms`
+
+      switch (type) {
+        case 'left': el.style.transform = 'translateX(-120px)'; break
+        case 'right': el.style.transform = 'translateX(120px)'; break
+        case 'zoom': el.style.transform = 'scale(0.85) translateY(40px)'; break
+        default: el.style.transform = 'translateY(120px)'
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        requestAnimationFrame(() => {
+          if (stagger) {
+            Array.from(el.children).forEach((c: any) => {
+              c.style.opacity = '1'
+              c.style.transform = 'translate(0)'
+            })
+          } else {
+            el.style.opacity = '1'
+            el.style.transform = 'translate(0) scale(1)'
+            el.style.filter = 'blur(0)'
+          }
+        })
+        observer.unobserve(el)
+      }
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' })
+    
+    setTimeout(() => {
+      observer.observe(el)
+    }, 50)
+  }
+}
 </script>
 
 <template>
-  <div>
+  <div class="min-h-screen bg-slate-50/60 pb-20">
     <!-- Page Hero -->
-    <section class="relative py-20 bg-gradient-to-br from-green-950 via-green-900 to-emerald-800 overflow-hidden">
-      <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-10 left-20 w-64 h-64 bg-green-400 rounded-full blur-3xl"></div>
-      </div>
+    <section class="relative py-20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 overflow-hidden text-white">
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
       <div class="container-app relative z-10 text-center">
-        <div class="flex items-center justify-center gap-2 text-green-300 text-xs font-medium mb-4">
+        <div class="inline-flex items-center gap-2 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-4 backdrop-blur-sm">
           <NuxtLink to="/" class="hover:text-white transition-colors">Beranda</NuxtLink>
           <ChevronRight class="w-3 h-3" />
-          <span class="text-white">Layanan Surat</span>
+          <span>Layanan Surat</span>
         </div>
-        <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-3">Layanan Surat Online</h1>
-        <p class="text-green-200/70 text-sm max-w-lg mx-auto">Ajukan surat secara online dan pantau statusnya dengan mudah</p>
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3" v-scroll-reveal="{ type: 'zoom' }">
+          Layanan Administrasi Surat Digital
+        </h1>
+        <p class="text-emerald-100/80 text-sm md:text-base max-w-xl mx-auto leading-relaxed" v-scroll-reveal="{ delay: 150 }">
+          Pengajuan surat keterangan desa secara mandiri dari rumah dengan sistem cerdas terhubung ke data kependudukan resmi.
+        </p>
       </div>
     </section>
 
-    <section class="py-12 md:py-16">
+    <!-- Main Section -->
+    <section class="py-10 md:py-14">
       <div class="container-app">
-        <!-- Steps -->
-        <div class="flex flex-col sm:flex-row justify-center gap-8 mb-12">
-          <div v-for="step in steps" :key="step.num" class="flex flex-col items-center text-center max-w-[200px]">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-800 to-green-600 text-white flex items-center justify-center text-xl font-bold mb-3 shadow-lg shadow-green-900/25">
+        <!-- Steps Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12" v-scroll-reveal="{ stagger: true }">
+          <div
+            v-for="step in steps"
+            :key="step.num"
+            class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col items-center text-center relative overflow-hidden group hover:border-emerald-300 transition-all"
+          >
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 font-extrabold flex items-center justify-center text-base mb-3 group-hover:bg-emerald-800 group-hover:text-white transition-colors shadow-inner">
               {{ step.num }}
             </div>
             <p class="font-bold text-slate-900 text-sm mb-1">{{ step.title }}</p>
-            <p class="text-xs text-muted-foreground">{{ step.desc }}</p>
+            <p class="text-xs text-slate-500 leading-tight">{{ step.desc }}</p>
           </div>
         </div>
 
-        <!-- Tab Switch -->
-        <div class="flex gap-2 justify-center mb-10">
-          <button
-            class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all"
-            :class="activeTab === 'ajukan'
-              ? 'bg-green-900 text-white shadow-lg shadow-green-900/25'
-              : 'text-slate-500 hover:bg-green-50 hover:text-green-800'"
-            @click="activeTab = 'ajukan'"
-          >
-            <FileText class="w-4 h-4" /> Ajukan Surat
-          </button>
-          <button
-            class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all"
-            :class="activeTab === 'cek'
-              ? 'bg-green-900 text-white shadow-lg shadow-green-900/25'
-              : 'text-slate-500 hover:bg-green-50 hover:text-green-800'"
-            @click="activeTab = 'cek'"
-          >
-            <Search class="w-4 h-4" /> Cek Status
-          </button>
-        </div>
-
-        <!-- Ajukan Form -->
-        <div v-if="activeTab === 'ajukan'" class="max-w-2xl mx-auto">
-          <!-- Success State -->
-          <div v-if="submitResult" class="bg-white rounded-2xl border border-border p-10 text-center">
-            <div class="w-16 h-16 rounded-full bg-green-50 text-green-600 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle class="w-8 h-8" />
-            </div>
-            <h3 class="text-xl font-bold text-slate-900 mb-2">Pengajuan Berhasil!</h3>
-            <p class="text-sm text-slate-500 mb-4">Pengajuan Anda sudah masuk antrean dan sedang kami proses.</p>
-            <p class="text-xs text-muted-foreground mb-6 max-w-md mx-auto">
-              Anda dapat mengecek status pengajuan kapan saja melalui menu "Cek Status" menggunakan <b>NIK</b> Anda, tanpa perlu repot menyimpan nomor resi!
-            </p>
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center mb-10">
+          <div class="inline-flex p-1.5 rounded-full bg-slate-200/70 border border-slate-300/80 shadow-inner">
             <button
-              class="px-6 py-2.5 rounded-full bg-green-900 text-white text-sm font-semibold hover:bg-green-800 transition-colors"
-              @click="submitResult = null; Object.assign(form, { nama:'', nik:'', no_kk:'', jenis_surat:'', keperluan:'', no_wa:'', dokumen: null })"
+              class="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200"
+              :class="activeTab === 'ajukan'
+                ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25'
+                : 'text-slate-600 hover:text-emerald-900'"
+              @click="activeTab = 'ajukan'"
             >
-              Ajukan Surat Baru
+              <FileText class="w-4 h-4" />
+              <span>Buat Pengajuan Surat</span>
+            </button>
+            <button
+              class="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200"
+              :class="activeTab === 'cek'
+                ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25'
+                : 'text-slate-600 hover:text-emerald-900'"
+              @click="activeTab = 'cek'"
+            >
+              <Search class="w-4 h-4" />
+              <span>Lacak Status Surat (Via NIK)</span>
             </button>
           </div>
+        </div>
 
-          <!-- Form -->
-          <form v-else class="bg-white rounded-2xl border border-border p-8" @submit.prevent="handleSubmit">
-            <div v-if="submitError" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 text-sm mb-6">
-              <AlertCircle class="w-4 h-4 shrink-0" /> {{ submitError }}
+        <!-- TAB 1: AJUKAN SURAT -->
+        <div v-if="activeTab === 'ajukan'" class="max-w-3xl mx-auto" v-scroll-reveal="{ type: 'up' }">
+          <!-- Success Card -->
+          <div v-if="submitResult" class="bg-white rounded-3xl border border-emerald-200 p-8 sm:p-12 text-center shadow-xl shadow-emerald-950/5 animate-fade-in-up">
+            <div class="w-18 h-18 w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-5 shadow-inner">
+              <CheckCircle2 class="w-10 h-10" />
             </div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 mb-3">
+              Nomor Referensi: {{ submitResult.ref_number }}
+            </span>
+            <h3 class="text-2xl font-black text-slate-900 mb-2">Pengajuan Berhasil Terkirim!</h3>
+            <p class="text-sm text-slate-600 mb-6 max-w-md mx-auto leading-relaxed">
+              Surat permohonan Anda telah berhasil didaftarkan dan segera diverifikasi oleh operator pelayanan Desa Sukarama.
+            </p>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
-                <input v-model="form.nama" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nama sesuai KTP">
-              </div>
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">NIK <span class="text-red-500">*</span></label>
-                <input v-model="form.nik" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nomor Induk Kependudukan">
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">No. KK <span class="text-red-500">*</span></label>
-                <input v-model="form.no_kk" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="Nomor Kartu Keluarga">
-              </div>
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">No. WhatsApp <span class="text-red-500">*</span></label>
-                <input v-model="form.no_wa" type="text" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all" placeholder="08xxxxxxxxxx">
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-8 max-w-lg mx-auto text-left text-xs text-slate-600 space-y-2">
+              <div class="flex items-start gap-2">
+                <ShieldCheck class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span><b>Auto-Tracking Aktif:</b> Cukup masukkan <b>NIK</b> Anda di menu tab "Lacak Status" untuk melihat progres persetujuan tanpa perlu mengingat nomor resi.</span>
               </div>
             </div>
 
+            <div class="flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                class="px-6 py-3 rounded-full bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-md"
+                @click="submitResult = null; Object.assign(form, { nama:'', nik:'', no_kk:'', jenis_surat:'', keperluan:'', no_wa:'', nama_kk:'', nama_ktp:'', nama_program:'', tahun_program:'2026', nama_usaha:'', sektor_usaha:'', nomor_kontak:'', bidang_usaha:'', alamat_usaha:'', lama_usaha:'', penandatangan:'Kepala Desa', dokumen: null })"
+              >
+                Ajukan Surat Lainnya
+              </button>
+              <button
+                class="px-6 py-3 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-colors"
+                @click="activeTab = 'cek'; refInput = form.nik; handleCekStatus()"
+              >
+                Lihat di Menu Lacak
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Submission Form -->
+          <form v-else class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm" @submit.prevent="handleSubmit">
+            <div class="mb-8 pb-6 border-b border-slate-100">
+              <h2 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <FileText class="w-5 h-5 text-emerald-700" />
+                Formulir Pengajuan Surat Warga
+              </h2>
+              <p class="text-xs text-slate-500 mt-1">
+                Lengkapi NIK untuk memuat data kependudukan resmi secara instan.
+              </p>
+            </div>
+
+            <!-- Error Banner -->
+            <ClientOnly>
+              <Teleport to="body">
+                <div v-if="submitError" class="fixed bottom-10 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
+                  <div @click="submitError = ''" class="pointer-events-auto w-full max-w-sm flex items-start justify-between gap-3 p-4 rounded-2xl bg-rose-600 text-white text-xs shadow-2xl shadow-rose-900/40 cursor-pointer hover:bg-rose-700 transition-all animate-fade-in-up animate-float">
+                    <div class="flex items-start gap-3">
+                      <AlertCircle class="w-5 h-5 shrink-0 mt-0.5" />
+                      <span class="leading-relaxed font-semibold">{{ submitError }}</span>
+                    </div>
+                    <X class="w-4 h-4 shrink-0 opacity-70 hover:opacity-100" />
+                  </div>
+                </div>
+              </Teleport>
+            </ClientOnly>
+
+            <!-- NIK & Autofill Status -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <label class="text-xs font-bold text-slate-700">NIK (Nomor Induk Kependudukan) <span class="text-rose-500">*</span></label>
+                  <span class="text-[11px] text-slate-400 font-mono">{{ form.nik.length }}/16</span>
+                </div>
+                <div class="relative">
+                  <input
+                    :value="form.nik"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none font-mono transition-all pr-10"
+                    placeholder="Contoh: 3203061708980009"
+                    @input="onNikInput"
+                  />
+                  <Loader2 v-if="checkingNik" class="w-4 h-4 text-emerald-700 absolute right-3 top-3.5 animate-spin" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Nama Lengkap <span class="text-rose-500">*</span></label>
+                <input
+                  v-model="form.nama"
+                  type="text"
+                  :disabled="nikFound === true"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none transition-all disabled:bg-slate-100/80 disabled:text-slate-700 disabled:font-medium"
+                  placeholder="Nama sesuai KTP"
+                />
+              </div>
+            </div>
+
+            <!-- NIK Detected Banner -->
+            <div v-if="nikFound === true && residentDetail" class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-between gap-3 animate-fade-in">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <UserCheck class="w-5 h-5" />
+                </div>
+                <div>
+                  <div class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
+                    <Check class="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Terverifikasi di Master Data</span>
+                  </div>
+                  <p class="text-xs text-emerald-950 font-bold">
+                    {{ residentDetail.namaLengkap }} &bull; KK: {{ residentDetail.noKk }}
+                  </p>
+                </div>
+              </div>
+              <span class="text-[11px] text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full font-semibold hidden sm:inline">
+                Autofill Aktif
+              </span>
+            </div>
+
+            <!-- NIK Not Found Notice (Auto-Register Alert) -->
+            <div v-if="nikFound === false && form.nik.length === 16" class="mb-6 p-5 rounded-2xl bg-amber-50 border border-amber-200 animate-fade-in">
+              <div class="flex items-start gap-3 mb-4">
+                <AlertCircle class="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wide">NIK Belum Terdaftar di Master</h4>
+                  <p class="text-xs text-amber-800 mt-1 leading-relaxed">
+                    Jangan khawatir! Anda tetap dapat mengajukan surat. Lengkapi biodata tambahan berikut, dan sistem akan <b>secara otomatis mendaftarkan data Anda</b> untuk kemudahan layanan di masa mendatang.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Extra fields for new residents -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-amber-200/60">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tempat Lahir <span class="text-rose-500">*</span></label>
+                  <input v-model="form.tempat_lahir" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-700 outline-none" placeholder="Contoh: Cianjur">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tanggal Lahir <span class="text-rose-500">*</span></label>
+                  <input v-model="form.tanggal_lahir" type="date" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-700 outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Jenis Kelamin <span class="text-rose-500">*</span></label>
+                  <select v-model="form.jenis_kelamin" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-700 outline-none bg-white">
+                    <option value="" disabled>Pilih Jenis Kelamin</option>
+                    <option value="LAKI-LAKI">Laki-laki</option>
+                    <option value="PEREMPUAN">Perempuan</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Agama <span class="text-rose-500">*</span></label>
+                  <select v-model="form.agama" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-700 outline-none bg-white">
+                    <option value="Islam">Islam</option>
+                    <option value="Kristen">Kristen</option>
+                    <option value="Katolik">Katolik</option>
+                    <option value="Hindu">Hindu</option>
+                    <option value="Buddha">Buddha</option>
+                    <option value="Konghucu">Konghucu</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Pekerjaan <span class="text-rose-500">*</span></label>
+                  <input v-model="form.pekerjaan" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-700 outline-none" placeholder="Contoh: Wiraswasta">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Alamat Lengkap <span class="text-rose-500">*</span></label>
+                  <input v-model="form.alamat" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-700 outline-none" placeholder="Kp. Sukamanah RT 01 RW 02">
+                </div>
+              </div>
+            </div>
+
+            <!-- Nomor KK & WhatsApp -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <label class="text-xs font-bold text-slate-700">Nomor Kartu Keluarga (KK) <span class="text-rose-500">*</span></label>
+                  <span class="text-[11px] text-slate-400 font-mono">{{ form.no_kk.length }}/16</span>
+                </div>
+                <input
+                  :value="form.no_kk"
+                  type="text"
+                  inputmode="numeric"
+                  :disabled="nikFound === true"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none font-mono transition-all disabled:bg-slate-100/80 disabled:text-slate-700"
+                  placeholder="16 digit Nomor KK"
+                  @input="onKkInput"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Nomor WhatsApp Aktif <span class="text-rose-500">*</span></label>
+                <input
+                  v-model="form.no_wa"
+                  type="text"
+                  class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none transition-all"
+                  placeholder="Contoh: 081234567890"
+                />
+              </div>
+            </div>
+
+            <!-- Pilihan Jenis Surat (Interactive Cards) -->
             <div class="mb-6">
-              <label class="block text-sm font-semibold text-slate-700 mb-2">Jenis Surat <span class="text-red-500">*</span></label>
-              <select v-model="form.jenis_surat" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all appearance-none bg-white">
-                <option value="" disabled>— Pilih jenis surat —</option>
-                <option v-for="opt in jenisSuratOptions" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
+              <label class="block text-xs font-bold text-slate-700 mb-3">Pilih Jenis Dokumen Surat <span class="text-rose-500">*</span></label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                <div
+                  v-for="opt in jenisSuratOptions"
+                  :key="opt.id"
+                  class="p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between"
+                  :class="form.jenis_surat === opt.id
+                    ? 'border-emerald-800 bg-emerald-50/70 ring-2 ring-emerald-800/20 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'"
+                  @click="form.jenis_surat = opt.id"
+                >
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-emerald-800 bg-emerald-100/80">
+                      <component :is="opt.icon" class="w-4 h-4" />
+                    </div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {{ opt.badge }}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold text-slate-900 leading-snug">{{ opt.title }}</h4>
+                    <p class="text-[11px] text-slate-500 mt-1 leading-tight">{{ opt.desc }}</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
+            <!-- Form Khusus: Surat Beda Nama -->
+            <div v-if="form.jenis_surat === 'Surat Beda Nama'" class="p-5 rounded-2xl bg-amber-50/60 border border-amber-200 mb-6 animate-fade-in">
+              <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wide mb-1">Rincian Perbedaan Nama</h4>
+              <p class="text-xs text-amber-700 mb-4">Mohon isi ejaan nama tepat sesuai dokumen yang bersangkutan.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Nama di Kartu Keluarga <span class="text-rose-500">*</span></label>
+                  <input v-model="form.nama_kk" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Sesuai dokumen KK">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Nama di KTP / Dokumen Lain <span class="text-rose-500">*</span></label>
+                  <input v-model="form.nama_ktp" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Sesuai dokumen KTP">
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Khusus: Surat Keterangan Usaha (SKU) -->
+            <div v-if="form.jenis_surat === 'Surat Keterangan Usaha'" class="p-5 rounded-2xl bg-blue-50/60 border border-blue-200 mb-6 animate-fade-in">
+              <h4 class="text-xs font-bold text-blue-900 uppercase tracking-wide mb-1">Rincian Legalitas Usaha</h4>
+              <p class="text-xs text-blue-700 mb-4">Data ini akan tercantum dalam surat pengantar keterangan usaha.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Bidang / Jenis Usaha <span class="text-rose-500">*</span></label>
+                  <input v-model="form.bidang_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: Toko Sembako, Bengkel, dll">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Lama Usaha Berjalan <span class="text-rose-500">*</span></label>
+                  <input v-model="form.lama_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: 3 Tahun">
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Alamat Lokasi Usaha <span class="text-rose-500">*</span></label>
+                  <input v-model="form.alamat_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Alamat lengkap lokasi tempat usaha">
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Khusus: Surat Pernyataan Program -->
+            <div v-if="form.jenis_surat === 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu'" class="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200 mb-6 animate-fade-in">
+              <h4 class="text-xs font-bold text-emerald-900 uppercase tracking-wide mb-1">Informasi Program / Kegiatan</h4>
+              <p class="text-xs text-emerald-700 mb-4">Lengkapi nama program binaan atau pemberdayaan desa.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Program / Kegiatan <span class="text-rose-500">*</span></label>
+                  <input v-model="form.nama_program" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: Bantuan UMKM Desa Sukarama">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Tahun Program <span class="text-rose-500">*</span></label>
+                  <input v-model="form.tahun_program" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="2026">
+                </div>
+                
+                <div class="sm:col-span-2 mt-1 pt-3 border-t border-emerald-200/60 flex items-center gap-3">
+                  <input type="checkbox" id="is_usaha" v-model="form.program_usaha" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                  <label for="is_usaha" class="text-xs font-bold text-emerald-800 uppercase tracking-wide cursor-pointer select-none">
+                    Program Ini Terkait Bantuan/Pembinaan Usaha
+                  </label>
+                </div>
+                
+                <template v-if="form.program_usaha">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Usaha <span class="text-rose-500">*</span></label>
+                    <input v-model="form.nama_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: Warung Berkah">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Sektor Usaha <span class="text-rose-500">*</span></label>
+                    <input v-model="form.sektor_usaha" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Contoh: Makanan / Pertanian">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Kontak Pribadi <span class="text-rose-500">*</span></label>
+                    <input v-model="form.nomor_kontak" type="text" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-800 outline-none" placeholder="Nomor handphone yang dapat dihubungi">
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Keperluan -->
             <div class="mb-6">
-              <label class="block text-sm font-semibold text-slate-700 mb-2">Keperluan <span class="text-red-500">*</span></label>
-              <textarea v-model="form.keperluan" rows="4" class="w-full px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all resize-y" placeholder="Jelaskan keperluan pengajuan surat..."></textarea>
+              <label class="block text-xs font-bold text-slate-700 mb-2">Keperluan Permohonan Surat <span class="text-rose-500">*</span></label>
+              <textarea
+                v-model="form.keperluan"
+                rows="3"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none resize-y transition-all"
+                placeholder="Contoh: Persyaratan administrasi pembukaan rekening bank, pengajuan beasiswa, dll..."
+              ></textarea>
             </div>
 
-            <div class="mb-8">
-              <label class="block text-sm font-semibold text-slate-700 mb-2">Dokumen Pendukung</label>
-              <label class="flex flex-col items-center justify-center px-6 py-8 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-green-800 hover:bg-green-50/30 transition-all">
-                <Upload class="w-6 h-6 text-muted-foreground mb-2" />
-                <span class="text-sm text-slate-500">{{ form.dokumen ? form.dokumen.name : 'Klik untuk upload file' }}</span>
-                <span class="text-xs text-muted-foreground mt-1">JPG, PNG, atau PDF (maks. 5MB)</span>
-                <input type="file" class="hidden" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" @change="handleFileChange">
-              </label>
+            <!-- Penandatangan & Lampiran -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Penandatangan Dokumen <span class="text-rose-500">*</span></label>
+                <select v-model="form.penandatangan" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none bg-white">
+                  <option value="Kepala Desa">Kepala Desa (Wahyu Komara)</option>
+                  <option value="Sekretaris Desa">Sekretaris Desa (Wawan Saepudin)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Lampiran Dokumen (Opsional)</label>
+                <label class="flex items-center gap-3 px-4 py-2.5 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-600 hover:bg-emerald-50/30 transition-all">
+                  <Upload class="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span class="text-xs text-slate-600 truncate">{{ form.dokumen ? form.dokumen.name : 'Upload Foto KTP/KK (Maks 5MB)' }}</span>
+                  <input type="file" class="hidden" accept=".jpg,.jpeg,.png,.pdf" @change="handleFileChange">
+                </label>
+              </div>
             </div>
 
+            <!-- Submit Button -->
             <button
               type="submit"
               :disabled="submitting"
-              class="w-full py-3.5 rounded-full bg-green-900 text-white font-semibold text-sm hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-900/25"
+              class="w-full py-4 rounded-2xl bg-emerald-900 hover:bg-emerald-800 active:scale-[0.99] text-white font-extrabold text-sm transition-all shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {{ submitting ? 'Mengirim...' : 'Kirim Pengajuan' }}
+              <Loader2 v-if="submitting" class="w-5 h-5 animate-spin" />
+              <span>{{ submitting ? 'Memproses Pengajuan Surat...' : 'Kirim Pengajuan Surat Sekarang' }}</span>
             </button>
           </form>
         </div>
 
-        <!-- Cek Status -->
-        <div v-if="activeTab === 'cek'" class="max-w-lg mx-auto">
-          <div class="bg-white rounded-2xl border border-border p-8">
-            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Search class="w-5 h-5 text-green-800" /> Cek Status Pengajuan
-            </h3>
-            <div class="flex gap-3 mb-6">
+        <!-- TAB 2: CEK STATUS SURAT -->
+        <div v-if="activeTab === 'cek'" class="max-w-2xl mx-auto" v-scroll-reveal="{ type: 'up' }">
+          <div class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm">
+            <div class="mb-6 pb-6 border-b border-slate-100">
+              <h3 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <Search class="w-5 h-5 text-emerald-700" />
+                Lacak Status Permohonan Surat
+              </h3>
+              <p class="text-xs text-slate-500 mt-1">
+                Masukkan 16 digit NIK Anda untuk memantau semua riwayat pengajuan surat.
+              </p>
+            </div>
+
+            <div class="flex gap-2 mb-6">
               <input
                 v-model="refInput"
                 type="text"
-                class="flex-1 px-4 py-3 rounded-xl border border-border text-sm focus:ring-2 focus:ring-green-800/20 focus:border-green-800 outline-none transition-all font-mono"
-                placeholder="Masukkan NIK Anda..."
+                inputmode="numeric"
+                class="flex-1 px-4 py-3 rounded-2xl border-2 border-slate-300 text-sm font-mono focus:ring-2 focus:ring-emerald-800/20 focus:border-emerald-800 outline-none"
+                placeholder="Ketik 16 digit NIK..."
                 @keyup.enter="handleCekStatus"
-              >
+              />
               <button
                 :disabled="checking"
-                class="px-6 py-3 rounded-xl bg-green-900 text-white text-sm font-semibold hover:bg-green-800 disabled:opacity-50 transition-colors"
+                class="px-6 py-3 rounded-2xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-emerald-950/20"
                 @click="handleCekStatus"
               >
-                {{ checking ? '...' : 'Cek' }}
+                <Loader2 v-if="checking" class="w-4 h-4 animate-spin" />
+                <span>{{ checking ? 'Mengecek...' : 'Cari Surat' }}</span>
               </button>
             </div>
 
-            <div v-if="statusError" class="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 text-red-700 text-sm">
-              <AlertCircle class="w-4 h-4 shrink-0" /> {{ statusError }}
+            <!-- Error alert -->
+            <div v-if="statusError" class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 mb-6">
+              <AlertCircle class="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{{ statusError }}</span>
             </div>
 
-            <div v-if="statusResult" class="flex flex-col gap-4">
-              <div v-for="surat in statusResult" :key="surat.ref_number" class="border border-border rounded-xl overflow-hidden">
-                <div class="flex justify-between px-4 py-3 border-b border-border bg-slate-50">
-                  <span class="text-sm font-semibold text-slate-700">Jenis Surat</span>
-                  <span class="text-sm text-slate-900 font-medium">{{ surat.jenis_surat }}</span>
-                </div>
-                <div class="flex justify-between px-4 py-3 border-b border-border">
-                  <span class="text-sm font-semibold text-slate-700">Status</span>
-                  <span :class="[getStatusColor(surat.status), 'px-3 py-0.5 rounded-full text-xs font-semibold']">
+            <!-- Status Results List -->
+            <div v-if="statusResult && statusResult.length > 0" class="space-y-4">
+              <div
+                v-for="surat in statusResult"
+                :key="surat.id"
+                class="rounded-2xl border border-slate-200/90 overflow-hidden bg-slate-50/50 shadow-sm"
+              >
+                <!-- Card Header -->
+                <div class="p-4 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span class="text-[10px] font-mono text-slate-400 block mb-0.5">{{ surat.ref_number }}</span>
+                    <h4 class="text-sm font-bold text-slate-900">{{ surat.jenis_surat }}</h4>
+                  </div>
+                  <span :class="[getStatusColor(surat.status), 'px-3 py-1 rounded-full text-xs font-extrabold shadow-sm']">
                     {{ surat.status }}
                   </span>
                 </div>
-                <div class="flex justify-between px-4 py-3">
-                  <span class="text-sm font-semibold text-slate-700">Tanggal Ajuan</span>
-                  <span class="text-sm text-slate-600">{{ formatTanggal(surat.created_at) }}</span>
+
+                <!-- Stepper Progress Timeline -->
+                <div class="py-7 px-6 bg-white border-b border-slate-100">
+                  <div class="grid grid-cols-3 relative" style="max-width: 480px; margin: 0 auto;">
+                    <!-- Background line (gray) -->
+                    <div class="absolute top-[18px] left-[calc(16.66%)] right-[calc(16.66%)] h-1 bg-slate-200 rounded-full"></div>
+                    <!-- Progress line (green) -->
+                    <div
+                      class="absolute top-[18px] left-[calc(16.66%)] h-1 bg-emerald-500 rounded-full transition-all duration-500"
+                      :style="{ width: surat.status === 'Diajukan' ? '0%' : surat.status === 'Diproses' ? '33.33%' : '66.66%' }"
+                    ></div>
+
+                    <!-- Step 1 -->
+                    <div class="flex flex-col items-center relative z-10">
+                      <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold bg-emerald-500 text-white shadow-sm border-[3px] border-white outline outline-1 outline-emerald-200">
+                        1
+                      </div>
+                      <span class="mt-2.5 text-xs font-semibold text-slate-500">Diajukan</span>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex flex-col items-center relative z-10">
+                      <div
+                        class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border-[3px] border-white transition-colors"
+                        :class="['Diproses', 'Selesai'].includes(surat.status) ? 'bg-emerald-500 text-white outline outline-1 outline-emerald-200' : 'bg-slate-200 text-slate-400 outline outline-1 outline-slate-100'"
+                      >
+                        2
+                      </div>
+                      <span class="mt-2.5 text-xs font-semibold text-slate-500">Diproses</span>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex flex-col items-center relative z-10">
+                      <div
+                        class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border-[3px] border-white transition-colors"
+                        :class="surat.status === 'Selesai' ? 'bg-emerald-500 text-white outline outline-1 outline-emerald-200' : 'bg-slate-200 text-slate-400 outline outline-1 outline-slate-100'"
+                      >
+                        <Check class="w-4 h-4" />
+                      </div>
+                      <span class="mt-2.5 text-xs font-semibold text-slate-500">Selesai</span>
+                    </div>
+                  </div>
                 </div>
-                <div v-if="surat.status === 'Selesai'" class="p-4 border-t border-border bg-green-50/50">
+
+                <!-- Detail & Download Footer -->
+                <div class="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <span class="text-slate-500">Diajukan pada: {{ formatTanggal(surat.created_at) }}</span>
+
                   <a
-                    :href="`http://localhost:3005/api/surat/${surat.id}/download-surat`"
+                    v-if="surat.status === 'Selesai'"
+                    :href="getDownloadUrl(surat.id)"
                     target="_blank"
-                    class="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-green-800 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+                    class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-900/20 transition-all"
                   >
-                    <Download class="w-4 h-4" /> Download Surat (Otomatis)
+                    <Download class="w-4 h-4" />
+                    <span>Download Surat Resmi (.docx)</span>
                   </a>
+                  <span v-else class="text-[11px] text-amber-700 bg-amber-50 px-3 py-1 rounded-full font-semibold border border-amber-200/60">
+                    Sedang diproses oleh staf desa
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- Help box -->
-          <div class="mt-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <HelpCircle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p class="text-sm font-semibold text-amber-800">Butuh bantuan?</p>
-              <p class="text-xs text-amber-700 mt-1">Jika ada data yang tidak sesuai atau proses yang terlalu lama, silakan hubungi kantor desa atau gunakan menu Kontak.</p>
             </div>
           </div>
         </div>

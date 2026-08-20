@@ -7,6 +7,26 @@ function hashPassword(password: string, salt: string): string {
   return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')
 }
 
+// Exported so tests can assert this seed data contains real newlines rather
+// than a literal `\n` escape sequence, without needing a database connection.
+export const seedPengumumanData = [
+  {
+    judul: 'Jadwal Posyandu Bulan Juli 2026',
+    konten: 'Diberitahukan kepada seluruh warga Desa Sukarama bahwa kegiatan Posyandu akan dilaksanakan pada:\n\n• Dusun Sukamanah: Senin, 6 Juli 2026\n• Dusun Sukamaju: Rabu, 8 Juli 2026\n• Dusun Sukasenang: Jumat, 10 Juli 2026\n\nWaktu: 08.00 – 12.00 WIB\nTempat: Pos Posyandu masing-masing dusun\n\nHarap membawa KMS (Kartu Menuju Sehat) dan buku catatan kesehatan anak.',
+    tanggal: '2026-07-01',
+  },
+  {
+    judul: 'Pendaftaran BLT Dana Desa Tahap II Tahun 2026',
+    konten: 'Pemerintah Desa Sukarama membuka pendaftaran penerima Bantuan Langsung Tunai (BLT) Dana Desa Tahap II Tahun 2026.\n\nSyarat:\n• Warga Desa Sukarama yang terdaftar di DTKS\n• Keluarga pra-sejahtera\n• Membawa KTP, KK, dan surat keterangan tidak mampu\n\nPendaftaran dibuka mulai 15 Juli – 31 Juli 2026 di Kantor Desa Sukarama.\n\nInformasi lebih lanjut hubungi Sekretariat Desa.',
+    tanggal: '2026-07-10',
+  },
+  {
+    judul: 'Persiapan Lomba HUT RI ke-81 Tahun 2026',
+    konten: 'Dalam rangka memperingati HUT Kemerdekaan RI ke-81, Pemerintah Desa Sukarama akan menyelenggarakan berbagai lomba:\n\n• Lomba panjat pinang\n• Lomba balap karung\n• Lomba makan kerupuk\n• Lomba 17-an untuk anak-anak\n• Lomba kebersihan antar RT\n\nPendaftaran peserta melalui ketua RT masing-masing paling lambat 10 Agustus 2026.',
+    tanggal: '2026-07-15',
+  },
+]
+
 export async function seedDatabase() {
   try {
     // ── Seed Admin ─────────────────────────────────────────
@@ -30,23 +50,7 @@ export async function seedDatabase() {
     // ── Seed Pengumuman ────────────────────────────────────
     const [cntPengumuman] = await db.select({ c: count() }).from(pengumuman)
     if (cntPengumuman.c === 0) {
-      await db.insert(pengumuman).values([
-        {
-          judul: 'Jadwal Posyandu Bulan Juli 2026',
-          konten: 'Diberitahukan kepada seluruh warga Desa Sukarama bahwa kegiatan Posyandu akan dilaksanakan pada:\\n\\n• Dusun Sukamanah: Senin, 6 Juli 2026\\n• Dusun Sukamaju: Rabu, 8 Juli 2026\\n• Dusun Sukasenang: Jumat, 10 Juli 2026\\n\\nWaktu: 08.00 – 12.00 WIB\\nTempat: Pos Posyandu masing-masing dusun\\n\\nHarap membawa KMS (Kartu Menuju Sehat) dan buku catatan kesehatan anak.',
-          tanggal: '2026-07-01',
-        },
-        {
-          judul: 'Pendaftaran BLT Dana Desa Tahap II Tahun 2026',
-          konten: 'Pemerintah Desa Sukarama membuka pendaftaran penerima Bantuan Langsung Tunai (BLT) Dana Desa Tahap II Tahun 2026.\\n\\nSyarat:\\n• Warga Desa Sukarama yang terdaftar di DTKS\\n• Keluarga pra-sejahtera\\n• Membawa KTP, KK, dan surat keterangan tidak mampu\\n\\nPendaftaran dibuka mulai 15 Juli – 31 Juli 2026 di Kantor Desa Sukarama.\\n\\nInformasi lebih lanjut hubungi Sekretariat Desa.',
-          tanggal: '2026-07-10',
-        },
-        {
-          judul: 'Persiapan Lomba HUT RI ke-81 Tahun 2026',
-          konten: 'Dalam rangka memperingati HUT Kemerdekaan RI ke-81, Pemerintah Desa Sukarama akan menyelenggarakan berbagai lomba:\\n\\n• Lomba panjat pinang\\n• Lomba balap karung\\n• Lomba makan kerupuk\\n• Lomba 17-an untuk anak-anak\\n• Lomba kebersihan antar RT\\n\\nPendaftaran peserta melalui ketua RT masing-masing paling lambat 10 Agustus 2026.',
-          tanggal: '2026-07-15',
-        },
-      ])
+      await db.insert(pengumuman).values(seedPengumumanData)
       console.log('✅ Seed pengumuman berhasil (3 data)')
     }
 
@@ -90,8 +94,35 @@ export async function seedDatabase() {
           noWaPemilik: '6281234567893',
           fotoPath: '/images/products/gula-aren.jpg',
         },
+        {
+          namaProduk: 'Kukumbul (Pelampung Pancing)',
+          harga: 5000,
+          kategori: 'Kerajinan',
+          deskripsi: 'Kerajinan pelampung pancing (kukumbul) buatan tangan berkualitas.',
+          pemilik: 'Pengrajin Kukumbul',
+          noWaPemilik: '6281573276932',
+          fotoPath: '/images/kukumbul.jpeg',
+        },
+        {
+          namaProduk: 'Doran Pacul Kayu Jati',
+          harga: 45000,
+          kategori: 'Kerajinan',
+          deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.',
+          pemilik: 'Pengrajin Kayu Sukarama',
+          noWaPemilik: '6285943097900',
+          fotoPath: '/images/doranpacul.jpeg',
+        },
+        {
+          namaProduk: 'Sapu Injuk Tradisional',
+          harga: 25000,
+          kategori: 'Kerajinan',
+          deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.',
+          pemilik: 'Perajin Injuk Desa',
+          noWaPemilik: '6283817916016',
+          fotoPath: '/images/sapu injuk.jpeg',
+        },
       ])
-      console.log('✅ Seed UMKM berhasil (4 data)')
+      console.log('✅ Seed UMKM berhasil (7 data)')
     }
 
     console.log('✅ Database Postgres siap (Drizzle ORM)')

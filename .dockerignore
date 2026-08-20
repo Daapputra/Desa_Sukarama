@@ -1,0 +1,32 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Build artifacts
+dist
+**/dist
+.nuxt
+**/.nuxt
+.output
+**/.output
+.nitro
+**/.nitro
+.cache
+**/.cache
+
+# Logs & Environment
+logs
+*.log
+.env
+.env.*
+!.env.example
+
+# OS & IDE files
+.DS_Store
+.idea
+.vscode
+.fleet

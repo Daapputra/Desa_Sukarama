@@ -2,9 +2,9 @@ import { desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pengumuman } from '../db/schema.js';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-// Model gratis di OpenRouter berbagi kuota upstream dan sering kena 429 sesaat.
-// Kirim sebagai daftar (bukan satu model) supaya OpenRouter otomatis coba model
-// berikutnya kalau yang pertama sedang penuh — jauh lebih andal daripada satu model saja.
+// Model gratis di OpenRouter berbagi kuota upstream (sering kena 429 sesaat)
+// dan model kecil kadang balas 200 OK tapi isinya rusak. Dicoba satu-satu
+// secara berurutan (lihat loop di bawah) sampai dapat jawaban yang valid.
 const FALLBACK_MODELS = [
     'openai/gpt-oss-20b:free',
     'google/gemma-4-31b-it:free',
@@ -31,11 +31,15 @@ function isRateLimited(ip) {
     return entry.count > RATE_LIMIT_MAX;
 }
 const JENIS_SURAT_INFO = `
-- Surat Keterangan Domisili: bukti domisili tempat tinggal sah di wilayah Desa Sukarama.
-- Surat Keterangan Usaha (SKU): legalitas kepemilikan usaha aktif di desa untuk pinjaman/izin.
-- Surat Beda Nama (KTP vs KK): klarifikasi resmi perbedaan ejaan nama antara Kartu Keluarga dan KTP/Ijazah.
-- Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu: pernyataan keikutsertaan program bantuan/kegiatan pemberdayaan.
-Semua pengajuan surat dilakukan online lewat halaman "Layanan" di website ini, memakai NIK dan No. KK. Status bisa dicek dengan nomor referensi yang diberikan setelah pengajuan. Dokumen bisa diunduh setelah status "Selesai".
+Semua jenis surat diajukan lewat form online di halaman "Layanan". Data yang selalu diminta di semua jenis surat: Nama, NIK, No. KK, Keperluan surat, No. WhatsApp, pilih penandatangan (Kepala Desa atau Sekretaris Desa), dan lampiran foto KTP/KK (opsional, maks 5MB, format jpg/png/pdf).
+
+Jenis surat yang tersedia dan data tambahan yang diminta:
+- Surat Keterangan Domisili: bukti domisili tempat tinggal sah di wilayah Desa Sukarama. Tidak ada data tambahan selain data umum di atas.
+- Surat Keterangan Usaha (SKU): legalitas kepemilikan usaha aktif di desa untuk pinjaman/izin. Data tambahan: bidang/jenis usaha, lama usaha berjalan, alamat lokasi usaha.
+- Surat Beda Nama (KTP vs KK): klarifikasi resmi perbedaan ejaan nama antara Kartu Keluarga dan KTP/dokumen lain. Data tambahan: nama sesuai Kartu Keluarga, dan nama sesuai KTP/dokumen lain.
+- Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu: pernyataan keikutsertaan program bantuan/kegiatan pemberdayaan desa. Data tambahan: nama program/kegiatan, tahun program.
+
+Setelah form dikirim, pemohon dapat nomor referensi untuk cek status pengajuan. Dokumen .docx bisa diunduh setelah status berubah menjadi "Selesai".
 `.trim();
 const CONTACT_INFO = `
 - Alamat Kantor Desa: Jl. Raya Sukarama No. 01, Kec. Bojongpicung, Kab. Cianjur, Jawa Barat 43283
@@ -65,6 +69,13 @@ ${CONTACT_INFO}
 ## Pengumuman terbaru
 ${pengumumanText}
 
+## Format jawaban
+- Tulis PLAIN TEXT saja — JANGAN pakai simbol markdown sama sekali (tidak ada **tebal**, tidak ada tanda #, tidak ada bullet "-" atau "*"). Tampilan chat ini tidak merender markdown, jadi simbol-simbol itu akan muncul mentah dan bikin jawaban terlihat berantakan.
+- Kalau perlu langkah bernomor, tulis dengan angka biasa diikuti titik dan baris baru, misalnya:
+1. Buka halaman Layanan
+2. Pilih jenis surat
+- Pisahkan poin/paragraf dengan baris baru biasa (enter), bukan simbol.
+
 ## Cara menjawab
 - Ngobrol senatural dan seramah mungkin, seperti petugas desa yang membantu langsung — bukan seperti robot yang kaku atau template.
 - Kalau kamu TIDAK TAHU jawabannya (tidak ada di informasi atas, atau di luar hal yang kamu pahami), akui terus terang "maaf, saya belum punya info soal itu" lalu arahkan ke kontak kantor desa di atas. JANGAN mengarang jawaban, apalagi soal nomor surat, status pengajuan, atau jadwal yang tidak tercantum di atas.
@@ -72,6 +83,33 @@ ${pengumumanText}
 - Jangan pernah meminta warga mengirimkan NIK, No. KK, atau data pribadi lain lewat chat ini — arahkan mereka ke halaman "Layanan" resmi untuk pengajuan yang butuh data pribadi.
 - Jangan memberi nasihat hukum/keuangan personal, hanya info umum layanan desa.
 - Jawab dalam Bahasa Indonesia, singkat dan jelas (tidak perlu bertele-tele).`;
+}
+// Jaring pengaman kalau model tetap terlepas menulis markdown meski sudah
+// diinstruksikan lewat system prompt — widget chat cuma render plain text.
+export function stripMarkdown(text) {
+    return text
+        .replace(/\*\*(.+?)\*\*/g, '$1') // **tebal**
+        .replace(/(?<!\*)\*(?!\*)(.+?)\*(?!\*)/g, '$1') // *miring*
+        .replace(/^#{1,6}\s+/gm, '') // # heading
+        .replace(/^[ \t]*[-*]\s+/gm, '') // - bullet / * bullet
+        .trim();
+}
+// Model kecil gratis kadang "macet" dan mengulang kata yang sama puluhan kali
+// (glitch, bukan jawaban valid) — deteksi ini supaya tidak dikirim ke warga.
+export function hasRepetitionLoop(text) {
+    const words = text.split(/\s+/);
+    let run = 1;
+    for (let i = 1; i < words.length; i++) {
+        if (words[i].length > 1 && words[i] === words[i - 1]) {
+            run++;
+            if (run >= 6)
+                return true;
+        }
+        else {
+            run = 1;
+        }
+    }
+    return false;
 }
 export async function chatRoutes(fastify) {
     fastify.post('/api/chat', async (request, reply) => {
@@ -101,24 +139,39 @@ export async function chatRoutes(fastify) {
                 })),
                 { role: 'user', content: message.trim() },
             ];
-            const res = await fetch(OPENROUTER_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-                body: JSON.stringify({ models: MODELS, messages }),
-            });
-            if (!res.ok) {
-                fastify.log.error(`OpenRouter error ${res.status}: ${await res.text()}`);
+            // Coba tiap model satu-satu (bukan sekadar kirim array `models` ke
+            // OpenRouter) supaya kita bisa memvalidasi ISI jawabannya, bukan cuma
+            // status HTTP-nya — model kecil gratis kadang balas 200 OK tapi isinya
+            // rusak (macet mengulang kata yang sama).
+            let rawReply;
+            let lastErrorStatus;
+            for (const model of MODELS) {
+                const res = await fetch(OPENROUTER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 600 }),
+                });
+                if (!res.ok) {
+                    lastErrorStatus = res.status;
+                    fastify.log.error(`OpenRouter error (${model}) ${res.status}: ${await res.text()}`);
+                    continue;
+                }
+                const data = await res.json();
+                const candidate = data?.choices?.[0]?.message?.content?.trim();
+                if (candidate && !hasRepetitionLoop(candidate)) {
+                    rawReply = candidate;
+                    break;
+                }
+                fastify.log.error(`Model ${model} returned an empty or degenerate reply, trying next fallback`);
+            }
+            if (!rawReply) {
+                fastify.log.error(`All chat models failed, last status: ${lastErrorStatus}`);
                 return reply.status(502).send({ error: 'Maaf, asisten sedang sibuk. Coba tanya lagi sebentar lagi ya.' });
             }
-            const data = await res.json();
-            const reply_text = data?.choices?.[0]?.message?.content?.trim();
-            if (!reply_text) {
-                return reply.status(502).send({ error: 'Asisten tidak memberikan jawaban, silakan coba lagi.' });
-            }
-            return { reply: reply_text };
+            return { reply: stripMarkdown(rawReply) };
         }
         catch (error) {
             fastify.log.error(error);

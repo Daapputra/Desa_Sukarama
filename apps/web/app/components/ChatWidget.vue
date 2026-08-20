@@ -145,7 +145,7 @@ async function sendMessage() {
               :class="msg.role === 'user' ? 'items-end' : 'items-start'"
             >
               <div
-                class="max-w-[80%] px-4 py-2.5 text-sm shadow-sm"
+                class="max-w-[80%] px-4 py-2.5 text-sm shadow-sm whitespace-pre-line"
                 :class="msg.role === 'user'
                   ? 'bg-white border border-slate-300 text-slate-800 rounded-2xl rounded-tr-sm'
                   : 'bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-sm'"

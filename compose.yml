@@ -30,6 +30,8 @@ services:
       PORT: 3005
       API_PORT: 3005
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-rahasia}@db:5432/${POSTGRES_DB:-desasukarama}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemma-4-31b-it:free}
     volumes:
       - ./uploads:/app/uploads
       - ./apps/web/public/templates:/app/apps/web/public/templates

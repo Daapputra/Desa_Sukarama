@@ -8,6 +8,7 @@ import { pengumumanRoutes } from './routes/pengumuman.js'
 import { suratRoutes } from './routes/surat.js'
 import { umkmRoutes } from './routes/umkm.js'
 import { kontakRoutes } from './routes/kontak.js'
+import { chatRoutes } from './routes/chat.js'
 
 const PORT = parseInt(process.env.API_PORT || process.env.PORT || '3005')
 
@@ -45,6 +46,7 @@ await app.register(pengumumanRoutes)
 await app.register(suratRoutes)
 await app.register(umkmRoutes)
 await app.register(kontakRoutes)
+await app.register(chatRoutes)
 
 // ── Health check ─────────────────────────────────────────
 app.get('/api/health', async () => {

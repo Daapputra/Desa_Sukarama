@@ -8,8 +8,11 @@ interface ChatMessage {
   time: string
 }
 
+const { apiPost } = useApi()
+
 const isOpen = ref(false)
 const draft = ref('')
+const sending = ref(false)
 const messageListEl = ref<HTMLElement | null>(null)
 
 function nowLabel(): string {
@@ -37,11 +40,9 @@ function scrollToBottom() {
   })
 }
 
-// Catatan: balasan bot di bawah ini hanya placeholder tampilan,
-// belum terhubung ke logika/AI backend sungguhan.
-function sendMessage() {
+async function sendMessage() {
   const text = draft.value.trim()
-  if (!text) return
+  if (!text || sending.value) return
 
   messages.value.push({
     id: Date.now(),
@@ -50,17 +51,33 @@ function sendMessage() {
     time: nowLabel(),
   })
   draft.value = ''
+  sending.value = true
   scrollToBottom()
 
-  setTimeout(() => {
+  // Kirim histori percakapan (tanpa pesan sistem/pertama) agar bot punya konteks.
+  const history = messages.value
+    .slice(0, -1)
+    .map(m => ({ role: m.role, text: m.text }))
+
+  try {
+    const res = await apiPost<{ reply: string }>('/api/chat', { message: text, history })
     messages.value.push({
       id: Date.now() + 1,
       role: 'bot',
-      text: 'Terima kasih atas pesan Anda. Tim kami akan segera menindaklanjuti.',
+      text: res.reply,
       time: nowLabel(),
     })
+  } catch (err: any) {
+    messages.value.push({
+      id: Date.now() + 1,
+      role: 'bot',
+      text: err.message || 'Maaf, terjadi kesalahan. Silakan coba lagi sebentar lagi.',
+      time: nowLabel(),
+    })
+  } finally {
+    sending.value = false
     scrollToBottom()
-  }, 600)
+  }
 }
 </script>
 
@@ -137,6 +154,11 @@ function sendMessage() {
               </div>
               <span class="text-[10px] text-slate-400 mt-1">{{ msg.time }}</span>
             </div>
+            <div v-if="sending" class="flex flex-col items-start">
+              <div class="max-w-[80%] px-4 py-2.5 text-sm shadow-sm bg-white border border-slate-200 text-slate-400 rounded-2xl rounded-tl-sm">
+                Mengetik...
+              </div>
+            </div>
           </div>
 
           <!-- Input row -->
@@ -145,12 +167,13 @@ function sendMessage() {
               v-model="draft"
               type="text"
               placeholder="Ketik pesan..."
-              class="flex-1 bg-slate-100 border border-transparent focus:border-emerald-300 focus:bg-white focus:outline-none rounded-full px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors"
+              :disabled="sending"
+              class="flex-1 bg-slate-100 border border-transparent focus:border-emerald-300 focus:bg-white focus:outline-none rounded-full px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors disabled:opacity-60"
               @keyup.enter="sendMessage"
             />
             <button
               class="w-10 h-10 shrink-0 rounded-full bg-white border border-slate-300 hover:bg-slate-50 disabled:bg-slate-200 disabled:text-slate-400 text-slate-800 flex items-center justify-center transition-colors"
-              :disabled="!draft.trim()"
+              :disabled="!draft.trim() || sending"
               aria-label="Kirim pesan"
               @click="sendMessage"
             >

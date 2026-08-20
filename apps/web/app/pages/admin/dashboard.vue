@@ -20,10 +20,16 @@ const router = useRouter()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase || 'http://localhost:3005'
 
-// Verify auth on mount
+// Verify auth first, and only load data once the session is confirmed valid —
+// otherwise an expired token still fires every list request (all 401) and the
+// admin UI renders real-looking empty state while the redirect is in flight.
 onMounted(async () => {
   const valid = await verify()
-  if (!valid) router.push('/admin')
+  if (!valid) {
+    router.push('/admin')
+    return
+  }
+  loadAll()
 })
 
 // Stats & active tab
@@ -107,8 +113,17 @@ async function loadAll() {
   }
 }
 
-onMounted(() => {
-  loadAll()
+// Transient error banner — replaces blocking native alert() so a failed request
+// never freezes the page, and the message matches the rest of the admin styling.
+const errorToast = ref('')
+let errorToastTimer: ReturnType<typeof setTimeout> | undefined
+function showError(message: string) {
+  errorToast.value = message
+  if (errorToastTimer) clearTimeout(errorToastTimer)
+  errorToastTimer = setTimeout(() => { errorToast.value = '' }, 6000)
+}
+onBeforeUnmount(() => {
+  if (errorToastTimer) clearTimeout(errorToastTimer)
 })
 
 const showLogoutConfirm = ref(false)
@@ -201,9 +216,12 @@ const umkmByKategori = computed(() => {
 async function updateSuratStatus(id: number, status: string) {
   try {
     await apiPut(`/api/surat/${id}/status`, { status })
-    await loadAll()
   } catch (err: any) {
-    alert(err.message || 'Gagal memperbarui status surat')
+    showError(err.message || 'Gagal memperbarui status surat')
+  } finally {
+    // Reload on both paths: on failure the dropdown would otherwise keep showing
+    // the status the admin picked while the database still holds the old one.
+    await loadAll()
   }
 }
 
@@ -229,7 +247,9 @@ function openEditModal(type: 'umkm' | 'pengumuman', data: any) {
 function openDetailModal(type: 'surat' | 'pesan', data: any) {
   modalType.value = type
   modalMode.value = 'detail'
-  modalData.value = data
+  // Copy, not the row reference — a background loadAll() replaces the list rows
+  // and would otherwise leave the open modal pointing at a detached object.
+  modalData.value = { ...data }
   showModal.value = true
 }
 
@@ -291,32 +311,55 @@ async function handleModalSubmit() {
   }
 }
 
-const deleteTarget = ref<{ type: 'pengumuman' | 'umkm'; id: number } | null>(null)
+type DeleteTarget = { type: 'pengumuman' | 'umkm'; id: number }
+
+// `deleteTarget` drives the dialog's visibility, so closing the dialog clears it.
+// The confirm button's click and the dialog's own close both fire on the same
+// element, and their order isn't guaranteed — if the close ran first the delete
+// would silently no-op. `pendingDelete` is kept outside that reactive state so
+// the handler always sees the record it was opened for.
+const deleteTarget = ref<DeleteTarget | null>(null)
+let pendingDelete: DeleteTarget | null = null
 
 function requestDelete(type: 'pengumuman' | 'umkm', id: number) {
+  pendingDelete = { type, id }
   deleteTarget.value = { type, id }
 }
 
 async function handleDelete() {
-  if (!deleteTarget.value) return
-  const { type, id } = deleteTarget.value
+  const target = pendingDelete
+  pendingDelete = null
   deleteTarget.value = null
+  if (!target) return
   try {
-    if (type === 'pengumuman') await apiDelete(`/api/pengumuman/${id}`)
-    else if (type === 'umkm') await apiDelete(`/api/umkm/${id}`)
-    await loadAll()
+    if (target.type === 'pengumuman') await apiDelete(`/api/pengumuman/${target.id}`)
+    else await apiDelete(`/api/umkm/${target.id}`)
   } catch (err: any) {
-    alert(err.message || 'Gagal menghapus data')
+    showError(err.message || 'Gagal menghapus data')
+  } finally {
+    await loadAll()
   }
 }
 
+// Nomor surat prompt — an in-app dialog rather than window.prompt(), which blocks
+// the page and can't be styled (and is suppressed outright in some browsers).
+const downloadTargetId = ref<number | null>(null)
+const nomorSurat = ref('')
+
 function downloadSurat(id: number) {
-  const nomor = window.prompt('Masukkan Nomor Surat Resmi (kosongkan jika ingin memakai nomor referensi bawaan):')
-  if (nomor === null) return // Canceled
+  nomorSurat.value = ''
+  downloadTargetId.value = id
+}
+
+function confirmDownloadSurat() {
+  const id = downloadTargetId.value
+  if (id === null) return
+  const nomor = nomorSurat.value.trim()
+  downloadTargetId.value = null
 
   const url = new URL(`${apiBase}/api/surat/${id}/download-surat`)
-  if (nomor.trim()) {
-    url.searchParams.set('nomor_surat', nomor.trim())
+  if (nomor) {
+    url.searchParams.set('nomor_surat', nomor)
   }
   window.open(url.toString(), '_blank')
 }
@@ -1091,5 +1134,71 @@ function downloadSurat(id: number) {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <!-- Nomor surat before download -->
+    <Dialog :open="downloadTargetId !== null" @update:open="(v) => { if (!v) downloadTargetId = null }">
+      <DialogContent class="max-w-md rounded-xl">
+        <DialogHeader>
+          <DialogTitle class="font-semibold text-slate-900 text-base">Cetak Surat</DialogTitle>
+          <DialogDescription class="text-xs text-slate-500">
+            Kosongkan jika ingin memakai nomor referensi bawaan.
+          </DialogDescription>
+        </DialogHeader>
+        <form class="space-y-4" @submit.prevent="confirmDownloadSurat">
+          <div>
+            <Label class="block text-xs font-medium text-slate-700 mb-1.5">Nomor Surat Resmi</Label>
+            <Input
+              v-model="nomorSurat"
+              type="text"
+              class="w-full h-auto px-3.5 py-2.5 rounded-lg border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
+              placeholder="Contoh: 470/12/DS/2026"
+            />
+          </div>
+          <div class="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              class="rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium h-auto px-4 py-2"
+              @click="downloadTargetId = null"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              class="rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-sm font-semibold h-auto px-4 py-2"
+            >
+              <Download class="w-4 h-4" />
+              <span>Cetak &amp; Download</span>
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Transient error notification -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-2"
+    >
+      <div
+        v-if="errorToast"
+        class="fixed bottom-6 right-6 z-50 max-w-sm flex items-start gap-2.5 px-4 py-3 rounded-lg bg-white border border-rose-200 shadow-lg text-rose-800 text-sm"
+        role="alert"
+      >
+        <AlertCircle class="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+        <span class="flex-1">{{ errorToast }}</span>
+        <button
+          class="shrink-0 text-rose-400 hover:text-rose-700 transition-colors"
+          aria-label="Tutup notifikasi"
+          @click="errorToast = ''"
+        >
+          <X class="w-4 h-4" />
+        </button>
+      </div>
+    </Transition>
   </SidebarProvider>
 </template>

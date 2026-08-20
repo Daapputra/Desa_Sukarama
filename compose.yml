@@ -31,7 +31,7 @@ services:
       API_PORT: 3005
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-rahasia}@db:5432/${POSTGRES_DB:-desasukarama}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-oss-20b:free}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-nvidia/nemotron-3-nano-30b-a3b:free}
     volumes:
       - ./uploads:/app/uploads
       - ./apps/web/public/templates:/app/apps/web/public/templates

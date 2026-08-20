@@ -8,10 +8,15 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 // Model gratis di OpenRouter berbagi kuota upstream (sering kena 429 sesaat)
 // dan model kecil kadang balas 200 OK tapi isinya rusak. Dicoba satu-satu
 // secara berurutan (lihat loop di bawah) sampai dapat jawaban yang valid.
+// Urutan dipilih dari hasil pengukuran manual: nemotron-nano paling cepat
+// (~1-2 detik) dan cukup akurat selama di-ground oleh system prompt; gemma
+// juga cepat tapi sering kena 429; gpt-oss-20b paling lambat (~7 detik,
+// karena ada "reasoning" tersembunyi sebelum jawab) tapi paling jarang gagal
+// — jadi ditaruh paling akhir sebagai fallback terakhir, bukan yang pertama.
 const FALLBACK_MODELS = [
-  'openai/gpt-oss-20b:free',
-  'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-nano-30b-a3b:free',
+  'google/gemma-4-31b-it:free',
+  'openai/gpt-oss-20b:free',
 ]
 const MODELS = process.env.OPENROUTER_MODEL
   ? [process.env.OPENROUTER_MODEL, ...FALLBACK_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)]
@@ -55,16 +60,33 @@ const CONTACT_INFO = `
 - Jam Pelayanan: Senin - Jumat 08.00-15.00 WIB, Sabtu-Minggu & hari libur tutup
 `.trim()
 
-async function buildSystemPrompt(): Promise<string> {
+// Pengumuman jarang berubah (admin update manual), jadi tidak perlu query DB
+// di setiap request chat — cache singkat ini memangkas 1 round-trip DB per
+// pesan tanpa membuat info basi lebih dari semenit.
+const PENGUMUMAN_CACHE_TTL_MS = 60 * 1000
+let pengumumanCache: { text: string; fetchedAt: number } | null = null
+
+async function getPengumumanText(): Promise<string> {
+  if (pengumumanCache && Date.now() - pengumumanCache.fetchedAt < PENGUMUMAN_CACHE_TTL_MS) {
+    return pengumumanCache.text
+  }
+
   const pengumumanTerbaru = await db
     .select({ judul: pengumuman.judul, tanggal: pengumuman.tanggal })
     .from(pengumuman)
     .orderBy(desc(pengumuman.tanggal), desc(pengumuman.id))
     .limit(5)
 
-  const pengumumanText = pengumumanTerbaru.length > 0
+  const text = pengumumanTerbaru.length > 0
     ? pengumumanTerbaru.map(p => `- ${p.judul} (${p.tanggal})`).join('\n')
     : '(belum ada pengumuman terbaru)'
+
+  pengumumanCache = { text, fetchedAt: Date.now() }
+  return text
+}
+
+async function buildSystemPrompt(): Promise<string> {
+  const pengumumanText = await getPengumumanText()
 
   return `Kamu adalah "Asisten Desa", chatbot resmi website Desa Sukarama, Kec. Bojongpicung, Kab. Cianjur.
 
@@ -174,7 +196,10 @@ export async function chatRoutes(fastify: FastifyInstance) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
           },
-          body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 600 }),
+          // reasoning: low memangkas token "berpikir" tersembunyi pada model
+          // yang mendukungnya (mis. gpt-oss) — model lain yang tidak
+          // mendukung parameter ini akan mengabaikannya begitu saja.
+          body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 500, reasoning: { effort: 'low' } }),
         })
 
         if (!res.ok) {

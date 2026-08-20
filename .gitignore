@@ -6,3 +6,5 @@ apps/*/.env
 uploads/
 .DS_Store
 *.xlsx
+~$*
+out.html

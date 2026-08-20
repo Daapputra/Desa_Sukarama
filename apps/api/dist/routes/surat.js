@@ -70,7 +70,7 @@ export async function suratRoutes(fastify) {
                 fields[part.fieldname] = part.value;
             }
         }
-        const { nama, nik, no_kk, jenis_surat, keperluan, no_wa, nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat, nama_program, tahun_program, nama_usaha, sektor_usaha, nomor_kontak, bidang_usaha, alamat_usaha, lama_usaha, penandatangan } = fields;
+        const { nama, nik, no_kk, jenis_surat, keperluan, no_wa, nama_kk, nama_ktp, tempat_lahir, tanggal_lahir, jenis_kelamin, agama, pekerjaan, alamat, nama_program, tahun_program, nama_usaha, sektor_usaha, nomor_kontak, bidang_usaha, alamat_usaha, lama_usaha, penandatangan, program_usaha } = fields;
         if (!nama || !nik || !no_kk || !jenis_surat || !keperluan || !no_wa) {
             return reply.status(400).send({ error: 'Semua field wajib harus diisi' });
         }
@@ -136,7 +136,8 @@ export async function suratRoutes(fastify) {
                 bidangUsaha: bidang_usaha || '',
                 alamatUsaha: alamat_usaha || '',
                 lamaUsaha: lama_usaha || '',
-                penandatangan: penandatangan || 'Kepala Desa'
+                penandatangan: penandatangan || 'Kepala Desa',
+                program_usaha: program_usaha === 'true'
             }
         });
         return reply.status(201).send({ ref_number: refNumber, message: 'Pengajuan surat berhasil dikirim' });
@@ -410,15 +411,18 @@ export async function suratRoutes(fastify) {
                 tahun_program: metadata?.tahunProgram || '',
                 TAHUN_PROGRAM: metadata?.tahunProgram || '',
                 tahunProgram: metadata?.tahunProgram || '',
-                nama_usaha: toTitleCase(metadata?.namaUsaha),
-                NAMA_USAHA: toTitleCase(metadata?.namaUsaha),
-                namaUsaha: toTitleCase(metadata?.namaUsaha),
-                sektor_usaha: toTitleCase(metadata?.sektorUsaha),
-                SEKTOR_USAHA: toTitleCase(metadata?.sektorUsaha),
-                sektorUsaha: toTitleCase(metadata?.sektorUsaha),
-                nomor_kontak: metadata?.nomorKontak || '',
-                NOMOR_KONTAK: metadata?.nomorKontak || '',
-                nomorKontak: metadata?.nomorKontak || '',
+                is_usaha: metadata?.program_usaha === 'true' || metadata?.program_usaha === true,
+                IS_USAHA: metadata?.program_usaha === 'true' || metadata?.program_usaha === true,
+                status_peserta: (metadata?.program_usaha === 'true' || metadata?.program_usaha === true) ? 'Pemilik Usaha tersebut' : 'calon peserta',
+                nama_usaha: toTitleCase(metadata?.namaUsaha) || '-',
+                NAMA_USAHA: toTitleCase(metadata?.namaUsaha) || '-',
+                namaUsaha: toTitleCase(metadata?.namaUsaha) || '-',
+                sektor_usaha: toTitleCase(metadata?.sektorUsaha) || '-',
+                SEKTOR_USAHA: toTitleCase(metadata?.sektorUsaha) || '-',
+                sektorUsaha: toTitleCase(metadata?.sektorUsaha) || '-',
+                nomor_kontak: metadata?.nomorKontak || '-',
+                NOMOR_KONTAK: metadata?.nomorKontak || '-',
+                nomorKontak: metadata?.nomorKontak || '-',
                 bidang_usaha: toTitleCase(metadata?.bidangUsaha),
                 BIDANG_USAHA: toTitleCase(metadata?.bidangUsaha),
                 bidangUsaha: toTitleCase(metadata?.bidangUsaha),

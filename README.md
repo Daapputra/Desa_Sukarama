@@ -110,6 +110,8 @@ cp .env.example .env
 ```
 *(Anda dapat mengubah isi `.env` nantinya jika butuh password database atau port khusus).*
 
+> ⚠️ **Ada 2 file `.env` yang beda fungsi — jangan tertukar.** Lihat penjelasan lengkapnya di bagian **"🔑 Konfigurasi Environment Variables (`.env`)"** di bawah sebelum lanjut, terutama kalau nanti ingin mengaktifkan fitur Chatbot AI.
+
 ### 3. Nyalakan Aplikasi (via Docker)
 Sangat direkomendasikan menjalankan aplikasi dalam mode *detached* (background) via Docker Compose. Perintah ini akan mengunduh, mem-build, dan menjalankan Database, API, serta Web sekaligus:
 ```bash
@@ -143,6 +145,85 @@ Setelah semua langkah di atas selesai, sistem sudah siap digunakan sepenuhnya:
 Tidak perlu menginstall DBeaver atau pgAdmin. Proyek ini sudah terintegrasi dengan GUI Database **Pgweb** di dalam Docker:
 * 🗄️ **Database Manager:** [http://localhost:8081](http://localhost:8081)
 * Anda bisa langsung melihat tabel, mengedit isi database, melihat log 6.000+ data NIK, atau menjalankan query SQL langsung dari browser!
+
+---
+
+## 🔑 Konfigurasi Environment Variables (`.env`)
+
+### Ada 2 file `.env` — jangan tertukar
+
+| File | Dibaca oleh | Kapan dipakai |
+| :--- | :--- | :--- |
+| **`.env`** (root repo) | `docker compose` (semua service: `db`, `api`, `web`, `pgweb`) | Setiap kali menjalankan `docker compose up`/`start`/`build` |
+| **`apps/api/.env`** | `npm run dev:api` / `npm run dev` (via `tsx --env-file=.env`) | Saat menjalankan backend **langsung di mesin lokal tanpa Docker** (termasuk mode Hybrid, lihat bagian di bawah) |
+
+**Kenapa dua-duanya, bukan satu saja?** Docker Compose tidak otomatis membaca `apps/api/.env` — ia hanya membaca `.env` di root repo untuk mengganti `${VARIABEL}` di `compose.yml`. Sebaliknya, `apps/api/.env` hanya dipakai kalau kamu menjalankan `tsx` secara langsung (di luar Docker). Kalau kamu isi API key cuma di salah satu file, fitur yang bergantung padanya akan jalan di satu mode tapi tidak di mode lain — ini penyebab paling umum kenapa sesuatu "sudah di-set tapi kok belum aktif juga".
+
+**Rekomendasi paling aman: isi kedua file dengan nilai yang sama.** Salin dari `.env.example` (root) dan `apps/api/.env.example`, keduanya sudah punya template variabel yang sama.
+
+### Daftar variabel penting
+
+| Variabel | Wajib? | Fungsi |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | ✅ Wajib | Connection string PostgreSQL. Beda nilai untuk Docker (`@db:5432`) vs lokal (`@localhost:5432`) — lihat komentar di `.env.example`. |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_PORT` | ✅ Wajib (untuk Docker) | Kredensial container `db`. Ubah `POSTGRES_PASSWORD` kalau mau lebih aman dari default. |
+| `DATABASE_SSL` | Opsional | `true` hanya kalau provider PostgreSQL eksternal mewajibkan koneksi SSL. Default `false` (cocok untuk Docker/lokal). |
+| `API_PORT` / `PORT` | Opsional | Port backend Fastify. Default `3005`, jarang perlu diubah. |
+| `NUXT_PUBLIC_API_BASE` | ✅ Wajib | URL API yang dipanggil browser (via `useApi()` composable di frontend). Default `http://localhost:3005`. |
+| `OPENROUTER_API_KEY` | Opsional | Lihat bagian **Chatbot AI** di bawah. Kalau kosong, fitur chat nonaktif secara aman (balas `503`, bukan error/crash). |
+| `OPENROUTER_MODEL` | Opsional | Model LLM gratis yang dipakai chatbot. Sudah ada default yang bekerja, tidak perlu diubah kecuali model defaultnya sedang bermasalah di OpenRouter. |
+
+### 🤖 Mengaktifkan Chatbot AI (opsional)
+
+Website ini punya widget chatbot (muncul di semua halaman publik) yang dijawab oleh LLM gratis lewat [OpenRouter](https://openrouter.ai). Kalau tidak dikonfigurasi, widget tetap tampil tapi menjawab dengan pesan "fitur belum aktif" — jadi ini **aman diabaikan** kalau tim tidak butuh fitur ini dulu.
+
+**Cara mengaktifkan:**
+1. Daftar gratis di [openrouter.ai](https://openrouter.ai) (bisa pakai akun Google/GitHub).
+2. Buat API key baru di [openrouter.ai/keys](https://openrouter.ai/keys), lalu copy.
+3. Tempel key itu ke `OPENROUTER_API_KEY=` di **kedua** file `.env` (root **dan** `apps/api/.env`) — sesuai penjelasan di atas.
+4. Restart supaya env baru terbaca:
+   ```bash
+   # Kalau pakai Docker:
+   docker compose up --build -d api
+
+   # Kalau mode dev lokal:
+   # cukup restart proses npm run dev / npm run dev:api
+   ```
+5. Tes lewat curl atau langsung buka widget chat di `http://localhost:3000`:
+   ```bash
+   curl -X POST http://localhost:3005/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"message":"jam buka kantor desa kapan?"}'
+   ```
+   Kalau dapat `{"reply": "..."}` dengan status `200`, berarti sudah aktif. Kalau `503`, berarti API key belum terbaca (cek ulang langkah 3-4).
+
+> 🔒 **Jangan pernah commit isi `.env` ke Git** — file ini sudah otomatis di-ignore (lihat `.gitignore`). Jangan juga menempel API key di chat/pesan tim secara polos; kalau API key pernah ter-share secara tidak sengaja, langsung regenerate di [openrouter.ai/keys](https://openrouter.ai/keys).
+
+---
+
+## 🧪 Testing
+
+Backend (`apps/api`) punya regression test (Vitest) untuk beberapa bug yang pernah ditemukan — jalankan sebelum push perubahan ke `apps/api` supaya bug yang sama tidak muncul lagi:
+
+```bash
+# Dari root repo
+npm run test:api
+
+# Atau dari dalam apps/api
+cd apps/api
+npm run test          # sekali jalan
+npm run test:watch    # mode watch, re-run otomatis saat file berubah
+```
+
+**Yang perlu diperhatikan:**
+- Sebagian besar test butuh koneksi ke PostgreSQL (baca `DATABASE_URL` dari `apps/api/.env`) — pastikan `docker compose up -d db` (atau seluruh stack) sedang jalan sebelum test.
+- Test membuat data dummy sementara (NIK/surat palsu berawalan `TEST-`) dan **otomatis membersihkannya sendiri** setelah selesai — aman dijalankan berulang kali, tidak akan menumpuk sampah di database.
+- Test chatbot (`chat.test.ts`, `chat.stripMarkdown.test.ts`) tidak memanggil OpenRouter sungguhan (tidak butuh `OPENROUTER_API_KEY`, tidak kena biaya/kuota) — hanya menguji validasi & logic murni.
+
+Selain unit test, selalu jalankan type check sebelum commit:
+```bash
+npm run typecheck
+```
 
 ---
 
@@ -251,6 +332,7 @@ Claude Code memasang **hook pengingat otomatis** untuk kasus ini — lihat `.cla
 | `npm run build` | Melakukan kompilasi TypeScript backend dan build bundle Nuxt 4 |
 | `npm run typecheck` | Memvalidasi seluruh TypeScript types pada backend dan frontend |
 | `npm run import:penduduk` | Mengimpor data 6.167+ penduduk dari file Excel ke database |
+| `npm run test:api` | Menjalankan seluruh regression test backend (Vitest) |
 
 ---
 

@@ -27,6 +27,32 @@ function cleanString(val: any): string | null {
   return s.length > 0 ? s : null
 }
 
+export async function upsertPendudukBatch(batch: (typeof penduduk.$inferInsert)[]) {
+  // `excluded.<column>` refers to each conflicting row's own incoming values —
+  // using a fixed JS value here (e.g. batch[0].noKk) would apply that single
+  // record's data to every conflicting row in the batch instead of each row's
+  // own data, silently overwriting up to BATCH_SIZE-1 other residents on re-import.
+  return db.insert(penduduk)
+    .values(batch)
+    .onConflictDoUpdate({
+      target: penduduk.nik,
+      set: {
+        noKk: sql`excluded.no_kk`,
+        namaLengkap: sql`excluded.nama_lengkap`,
+        jenisKelamin: sql`excluded.jenis_kelamin`,
+        tempatLahir: sql`excluded.tempat_lahir`,
+        tanggalLahir: sql`excluded.tanggal_lahir`,
+        agama: sql`excluded.agama`,
+        pendidikan: sql`excluded.pendidikan`,
+        jenisPekerjaan: sql`excluded.jenis_pekerjaan`,
+        statusPerkawinan: sql`excluded.status_perkawinan`,
+        alamat: sql`excluded.alamat`,
+        rt: sql`excluded.rt`,
+        rw: sql`excluded.rw`,
+      }
+    })
+}
+
 async function importPenduduk() {
   console.log('🔄 Membaca file Excel kependudukan...')
   const filePath = findUploadPath('Data Penduduk Desa Sukarama Kecamatan Bojongpicung Status Nik Permanen.xlsx')
@@ -84,31 +110,7 @@ async function importPenduduk() {
 
   for (let i = 0; i < validRecords.length; i += BATCH_SIZE) {
     const batch = validRecords.slice(i, i + BATCH_SIZE)
-    
-    // `excluded.<column>` refers to each conflicting row's own incoming values —
-    // using a fixed JS value here (e.g. batch[0].noKk) would apply that single
-    // record's data to every conflicting row in the batch instead of each row's
-    // own data, silently overwriting up to BATCH_SIZE-1 other residents on re-import.
-    await db.insert(penduduk)
-      .values(batch)
-      .onConflictDoUpdate({
-        target: penduduk.nik,
-        set: {
-          noKk: sql`excluded.no_kk`,
-          namaLengkap: sql`excluded.nama_lengkap`,
-          jenisKelamin: sql`excluded.jenis_kelamin`,
-          tempatLahir: sql`excluded.tempat_lahir`,
-          tanggalLahir: sql`excluded.tanggal_lahir`,
-          agama: sql`excluded.agama`,
-          pendidikan: sql`excluded.pendidikan`,
-          jenisPekerjaan: sql`excluded.jenis_pekerjaan`,
-          statusPerkawinan: sql`excluded.status_perkawinan`,
-          alamat: sql`excluded.alamat`,
-          rt: sql`excluded.rt`,
-          rw: sql`excluded.rw`,
-        }
-      })
-    
+    await upsertPendudukBatch(batch)
     inserted += batch.length
     process.stdout.write(`\r🚀 Mengimpor ke database... ${inserted}/${validRecords.length} data`)
   }
@@ -119,7 +121,11 @@ async function importPenduduk() {
   await pool.end()
 }
 
-importPenduduk().catch((err) => {
-  console.error('\n❌ Terjadi kesalahan saat mengimpor:', err)
-  process.exit(1)
-})
+// Support importing `upsertPendudukBatch` from tests without triggering the
+// Excel-reading CLI flow (which expects an uploads/*.xlsx file to exist).
+if (process.argv[1]?.endsWith('import-penduduk.ts') || process.argv[1]?.endsWith('import-penduduk.js')) {
+  importPenduduk().catch((err) => {
+    console.error('\n❌ Terjadi kesalahan saat mengimpor:', err)
+    process.exit(1)
+  })
+}

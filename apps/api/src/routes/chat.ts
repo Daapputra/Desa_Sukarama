@@ -4,7 +4,7 @@ import { db } from '../db/index.js'
 import { pengumuman } from '../db/schema.js'
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const MODEL = process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free'
+const MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free'
 const MAX_MESSAGE_LENGTH = 1000
 const MAX_HISTORY_TURNS = 6
 

@@ -19,6 +19,11 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // Server-only: dipakai saat SSR di dalam container Docker, di mana
+    // 'localhost'/'127.0.0.1' tidak menjangkau container 'api' lain — butuh
+    // nama service Docker (mis. http://api:3005). Fallback ke apiBase publik
+    // untuk dev non-Docker, di mana API memang reachable lewat localhost.
+    apiBaseInternal: process.env.NUXT_API_BASE_INTERNAL || '',
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.API_BASE || 'http://127.0.0.1:3005',
     },

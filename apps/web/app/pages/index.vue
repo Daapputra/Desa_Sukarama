@@ -142,7 +142,7 @@ onUnmounted(() => {
 
 // Fetch real data
 const { data: pengumumanList } = useAsyncData('pengumuman', () =>
-  apiGet<any[]>('/api/pengumuman?limit=3').catch(() => [])
+  apiGet<any[]>('/api/pengumuman?limit=3').catch(() => null)
 )
 
 const pengumumanLokal = [
@@ -151,11 +151,10 @@ const pengumumanLokal = [
   { id: 3, tanggal: '2026-08-10', judul: 'Penyaluran Bantuan Langsung Tunai (BLT)', konten: 'Pencairan BLT Tahap III bagi Keluarga Penerima Manfaat (KPM) dapat diambil langsung di kantor desa dengan membawa e-KTP dan KK asli.' }
 ]
 
+// null = fetch API gagal (pakai data contoh lokal); array kosong = memang belum ada pengumuman
 const pengumumanTampil = computed(() => {
-  if (pengumumanList.value && pengumumanList.value.length > 0) {
-    return pengumumanList.value.slice(0, 3)
-  }
-  return pengumumanLokal
+  if (pengumumanList.value === null) return pengumumanLokal
+  return pengumumanList.value.slice(0, 3)
 })
 
 const { data: umkmList } = useAsyncData('umkm', () =>
@@ -515,6 +514,7 @@ function getWhatsappUrl(p: any): string {
             </div>
           </div>
         </div>
+        <p v-else class="text-center text-sm text-slate-400 py-8">Belum ada pengumuman terbaru saat ini.</p>
       </div>
     </section>
 

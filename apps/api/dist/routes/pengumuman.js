@@ -10,11 +10,19 @@ async function requireAuth(request, reply) {
     }
     request.admin = getToken(token);
 }
+const JUDUL_MAX_LENGTH = 255;
+function parsePengumumanId(id) {
+    const parsed = parseInt(id, 10);
+    return Number.isInteger(parsed) ? parsed : null;
+}
 export async function pengumumanRoutes(fastify) {
     // GET /api/pengumuman
     fastify.get('/api/pengumuman', async (request) => {
         const { limit } = request.query;
-        const l = parseInt(limit || '100');
+        const parsedLimit = parseInt(limit ?? '', 10);
+        const l = Number.isFinite(parsedLimit) && parsedLimit > 0
+            ? Math.min(parsedLimit, 100)
+            : 100;
         const result = await db
             .select()
             .from(pengumuman)
@@ -25,10 +33,14 @@ export async function pengumumanRoutes(fastify) {
     // GET /api/pengumuman/:id
     fastify.get('/api/pengumuman/:id', async (request, reply) => {
         const { id } = request.params;
+        const parsedId = parsePengumumanId(id);
+        if (parsedId === null) {
+            return reply.status(400).send({ error: 'ID pengumuman tidak valid' });
+        }
         const result = await db
             .select()
             .from(pengumuman)
-            .where(eq(pengumuman.id, parseInt(id)))
+            .where(eq(pengumuman.id, parsedId))
             .limit(1);
         if (result.length === 0) {
             return reply.status(404).send({ error: 'Pengumuman tidak ditemukan' });
@@ -41,6 +53,9 @@ export async function pengumumanRoutes(fastify) {
         if (!judul || !konten || !tanggal) {
             return reply.status(400).send({ error: 'Judul, konten, dan tanggal harus diisi' });
         }
+        if (judul.length > JUDUL_MAX_LENGTH) {
+            return reply.status(400).send({ error: `Judul maksimal ${JUDUL_MAX_LENGTH} karakter` });
+        }
         const result = await db
             .insert(pengumuman)
             .values({ judul, konten, tanggal })
@@ -50,37 +65,51 @@ export async function pengumumanRoutes(fastify) {
     // PUT /api/pengumuman/:id (auth required)
     fastify.put('/api/pengumuman/:id', { preHandler: requireAuth }, async (request, reply) => {
         const { id } = request.params;
+        const parsedId = parsePengumumanId(id);
+        if (parsedId === null) {
+            return reply.status(400).send({ error: 'ID pengumuman tidak valid' });
+        }
         const existing = await db
             .select()
             .from(pengumuman)
-            .where(eq(pengumuman.id, parseInt(id)))
+            .where(eq(pengumuman.id, parsedId))
             .limit(1);
         if (existing.length === 0) {
             return reply.status(404).send({ error: 'Pengumuman tidak ditemukan' });
         }
         const { judul, konten, tanggal } = request.body;
+        if (judul === '' || konten === '' || tanggal === '') {
+            return reply.status(400).send({ error: 'Judul, konten, dan tanggal harus diisi' });
+        }
+        if (judul && judul.length > JUDUL_MAX_LENGTH) {
+            return reply.status(400).send({ error: `Judul maksimal ${JUDUL_MAX_LENGTH} karakter` });
+        }
         await db
             .update(pengumuman)
             .set({
-            judul: judul || existing[0].judul,
-            konten: konten || existing[0].konten,
-            tanggal: tanggal || existing[0].tanggal,
+            judul: judul ?? existing[0].judul,
+            konten: konten ?? existing[0].konten,
+            tanggal: tanggal ?? existing[0].tanggal,
         })
-            .where(eq(pengumuman.id, parseInt(id)));
+            .where(eq(pengumuman.id, parsedId));
         return { message: 'Pengumuman berhasil diperbarui' };
     });
     // DELETE /api/pengumuman/:id (auth required)
     fastify.delete('/api/pengumuman/:id', { preHandler: requireAuth }, async (request, reply) => {
         const { id } = request.params;
+        const parsedId = parsePengumumanId(id);
+        if (parsedId === null) {
+            return reply.status(400).send({ error: 'ID pengumuman tidak valid' });
+        }
         const existing = await db
             .select()
             .from(pengumuman)
-            .where(eq(pengumuman.id, parseInt(id)))
+            .where(eq(pengumuman.id, parsedId))
             .limit(1);
         if (existing.length === 0) {
             return reply.status(404).send({ error: 'Pengumuman tidak ditemukan' });
         }
-        await db.delete(pengumuman).where(eq(pengumuman.id, parseInt(id)));
+        await db.delete(pengumuman).where(eq(pengumuman.id, parsedId));
         return { message: 'Pengumuman berhasil dihapus' };
     });
 }

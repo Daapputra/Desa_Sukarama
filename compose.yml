@@ -60,6 +60,10 @@ services:
       PORT: 3000
       HOST: 0.0.0.0
       NUXT_PUBLIC_API_BASE: ${NUXT_PUBLIC_API_BASE:-http://localhost:3005}
+      # Server-only: dipakai untuk fetch SSR di dalam network Docker, di mana
+      # NUXT_PUBLIC_API_BASE (localhost, untuk browser) tidak reachable dari
+      # container 'web' — harus lewat nama service 'api'.
+      NUXT_API_BASE_INTERNAL: http://api:3005
     ports:
       - "3000:3000"
 

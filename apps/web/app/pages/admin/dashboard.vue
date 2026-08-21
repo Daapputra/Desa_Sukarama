@@ -95,21 +95,24 @@ const modalLoading = ref(false)
 const modalError = ref('')
 
 async function loadAll() {
-  try {
-    const [resStats, resSurat, resUmkm, resPengumuman, resPesan] = await Promise.all([
-      apiGet('/api/admin/stats').catch(() => null),
-      apiGet<any[]>('/api/surat').catch(() => []),
-      apiGet<any[]>('/api/umkm').catch(() => []),
-      apiGet<any[]>('/api/pengumuman').catch(() => []),
-      apiGet<any[]>('/api/kontak').catch(() => []),
-    ])
-    stats.value = resStats
-    suratList.value = resSurat
-    umkmList.value = resUmkm
-    pengumumanList.value = resPengumuman
-    pesanList.value = resPesan
-  } catch {
-    // Graceful error recovery
+  const [resStats, resSurat, resUmkm, resPengumuman, resPesan] = await Promise.allSettled([
+    apiGet('/api/admin/stats'),
+    apiGet<any[]>('/api/surat'),
+    apiGet<any[]>('/api/umkm'),
+    apiGet<any[]>('/api/pengumuman'),
+    apiGet<any[]>('/api/kontak'),
+  ])
+  stats.value = resStats.status === 'fulfilled' ? resStats.value : null
+  suratList.value = resSurat.status === 'fulfilled' ? resSurat.value : []
+  umkmList.value = resUmkm.status === 'fulfilled' ? resUmkm.value : []
+  pengumumanList.value = resPengumuman.status === 'fulfilled' ? resPengumuman.value : []
+  pesanList.value = resPesan.status === 'fulfilled' ? resPesan.value : []
+
+  const anyFailed = [resStats, resSurat, resUmkm, resPengumuman, resPesan].some(
+    (r) => r.status === 'rejected'
+  )
+  if (anyFailed) {
+    showError('Sebagian data gagal dimuat. Coba muat ulang halaman.')
   }
 }
 
@@ -225,12 +228,17 @@ async function updateSuratStatus(id: number, status: string) {
   }
 }
 
+function todayLocalISODate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // CRUD modals
 function openAddModal(type: 'umkm' | 'pengumuman') {
   modalType.value = type
   modalMode.value = 'add'
   modalData.value = type === 'pengumuman'
-    ? { tanggal: new Date().toISOString().split('T')[0] }
+    ? { tanggal: todayLocalISODate() }
     : { kategori: 'Makanan' }
   modalError.value = ''
   showModal.value = true
@@ -267,6 +275,10 @@ async function handleModalSubmit() {
     if (modalType.value === 'pengumuman') {
       if (!modalData.value.judul || !modalData.value.konten || !modalData.value.tanggal) {
         modalError.value = 'Judul, tanggal, dan konten pengumuman wajib diisi'
+        return
+      }
+      if (modalData.value.judul.length > 255) {
+        modalError.value = 'Judul pengumuman maksimal 255 karakter'
         return
       }
       const body = {
@@ -959,6 +971,7 @@ function confirmDownloadSurat() {
                   <Input
                     v-model="modalData.judul"
                     type="text"
+                    maxlength="255"
                     class="w-full h-auto px-4 py-2.5 rounded-xl border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                     placeholder="Contoh: Jadwal Pelayanan Administrasi Desa..."
                   />

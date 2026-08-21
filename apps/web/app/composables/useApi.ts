@@ -3,7 +3,14 @@
  */
 export function useApi() {
   const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase as string
+  // Di SSR (jalan di dalam container Docker), apiBase publik biasanya
+  // menunjuk ke URL yang browser bisa akses (mis. localhost:3005 lewat port
+  // mapping host) — itu tidak reachable dari container 'web' sendiri.
+  // apiBaseInternal (server-only) menunjuk ke nama service Docker sehingga
+  // fetch SSR jalan; di client selalu pakai apiBase publik.
+  const apiBase = (import.meta.server && config.apiBaseInternal)
+    ? (config.apiBaseInternal as string)
+    : (config.public.apiBase as string)
 
   function getAuthHeaders(): Record<string, string> {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('admin_token') : null

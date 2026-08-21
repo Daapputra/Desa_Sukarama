@@ -9,7 +9,13 @@ export function formatRupiah(num: number): string {
  * Format tanggal ke format Indonesia — sama persis dengan existing
  */
 export function formatTanggal(dateStr: string): string {
-  const d = new Date(dateStr)
+  // Tanggal date-only ('YYYY-MM-DD') diparse manual sebagai tanggal lokal —
+  // `new Date(dateStr)` membacanya sebagai UTC-midnight, yang bisa mundur
+  // satu hari di timezone di belakang UTC.
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr)
+  const d = dateOnlyMatch
+    ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+    : new Date(dateStr)
   return d.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',

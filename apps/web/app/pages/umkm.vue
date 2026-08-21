@@ -19,33 +19,12 @@ const selectedProduct = ref<any | null>(null)
 
 const kategoriList = ['Semua', 'Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya']
 
-// Foto produk lokal sebagai fallback visual yang tetap elegan
-const produkLokal = [
-  { id: 5, namaProduk: 'Kukumbul (Pelampung Pancing)', harga: 80000, kategori: 'Kerajinan', deskripsi: 'Kerajinan pelampung pancing (kukumbul) buatan tangan berkualitas.', pemilik: 'Pengrajin Kukumbul', noWaPemilik: '6281573276932', fotoPath: '/images/kukumbul.jpeg' },
-  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 150000, kategori: 'Kerajinan', deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6283817916016', fotoPath: '/images/sapu injuk.jpeg' },
-  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 140000, kategori: 'Kerajinan', deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6285943097900', fotoPath: '/images/doranpacul.jpeg' },
-  { id: 8, namaProduk: 'Pentol Jagoan', harga: 5000, kategori: 'Makanan', deskripsi: 'Pentol Jagoan yang lezat dan gurih. Harga satuan bervariasi dari Rp 1.000, Rp 2.000, hingga Rp 5.000.', pemilik: 'Pentol Jagoan', noWaPemilik: '6283871171146', fotoPath: '/images/products/pentol_jagoan.jpg' },
-]
-
 const { data: dbProduk } = useAsyncData('umkm-all', () =>
   apiGet<any[]>('/api/umkm').catch(() => []),
   { server: false }
 )
 
-const allProduk = computed(() => {
-  let list = produkLokal
-  if (dbProduk.value && dbProduk.value.length > 0) {
-    list = [...produkLokal, ...dbProduk.value]
-  }
-  // Remove duplicates by name
-  const seen = new Set()
-  return list.filter((item: any) => {
-    const name = (item.namaProduk || item.nama_produk || '').toLowerCase().trim()
-    if (seen.has(name)) return false
-    seen.add(name)
-    return true
-  })
-})
+const allProduk = computed(() => dbProduk.value || [])
 
 const filteredProduk = computed(() => {
   let list = allProduk.value
@@ -55,7 +34,7 @@ const filteredProduk = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim()
     list = list.filter((p: any) =>
-      (p.nama_produk || p.namaProduk || '').toLowerCase().includes(q) ||
+      (p.namaProduk || '').toLowerCase().includes(q) ||
       (p.deskripsi || '').toLowerCase().includes(q) ||
       (p.pemilik || '').toLowerCase().includes(q)
     )
@@ -64,8 +43,8 @@ const filteredProduk = computed(() => {
 })
 
 function getProductImg(p: any): string {
-  const path = p.foto_path || p.fotoPath
-  if (path && (path.startsWith('http') || path.startsWith('/images/'))) {
+  const path = p.fotoPath
+  if (path && (path.startsWith('http') || path.startsWith('/images/') || path.startsWith('data:'))) {
     return path
   }
   // Default image based on category
@@ -80,12 +59,12 @@ function handleImageError(e: Event) {
 }
 
 function getWhatsappUrl(p: any): string {
-  let phone = p.no_wa_pemilik || p.noWaPemilik || '6281234567890'
+  let phone = p.noWaPemilik || '6281234567890'
   phone = phone.replace(/\D/g, '')
   if (phone.startsWith('0')) {
     phone = '62' + phone.substring(1)
   }
-  const name = p.nama_produk || p.namaProduk
+  const name = p.namaProduk
   const seller = p.pemilik || 'Bapak/Ibu'
   const message = `Halo ${seller}, saya melihat produk "${name}" di Website Resmi Desa Sukarama. Apakah produk ini masih tersedia dan bisa saya pesan?`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -314,7 +293,7 @@ const vScrollReveal = {
           <div class="h-64 bg-slate-100 overflow-hidden relative">
             <img
               :src="getProductImg(selectedProduct)"
-              :alt="selectedProduct.nama_produk || selectedProduct.namaProduk"
+              :alt="selectedProduct.namaProduk"
               class="w-full h-full object-cover"
               @error="handleImageError"
             />
@@ -327,11 +306,11 @@ const vScrollReveal = {
           <div class="p-6">
             <div class="flex justify-between items-start gap-3 mb-2">
               <h3 class="text-xl font-black text-slate-900 leading-tight">
-                {{ selectedProduct.nama_produk || selectedProduct.namaProduk }}
+                {{ selectedProduct.namaProduk }}
               </h3>
               <span class="text-lg font-black text-emerald-800 whitespace-nowrap">
                 {{ formatRupiah(selectedProduct.harga) }}
-                <span v-if="(selectedProduct.nama_produk || selectedProduct.namaProduk).toLowerCase().includes('kukumbul')" class="text-sm font-normal text-slate-500">/ Pack</span>
+                <span v-if="selectedProduct.namaProduk.toLowerCase().includes('kukumbul')" class="text-sm font-normal text-slate-500">/ Pack</span>
                 <span v-else class="text-sm font-normal text-slate-500">/ Kodi</span>
               </span>
             </div>
@@ -347,7 +326,7 @@ const vScrollReveal = {
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-500">Kontak WhatsApp</span>
-                <span class="font-mono text-emerald-800 font-semibold">{{ selectedProduct.no_wa_pemilik || selectedProduct.noWaPemilik }}</span>
+                <span class="font-mono text-emerald-800 font-semibold">{{ selectedProduct.noWaPemilik }}</span>
               </div>
             </div>
 

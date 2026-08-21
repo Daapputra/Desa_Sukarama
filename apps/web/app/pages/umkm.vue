@@ -123,7 +123,7 @@ const vScrollReveal = {
     }
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
+      if (entries[0]?.isIntersecting) {
         requestAnimationFrame(() => {
           if (stagger) {
             Array.from(el.children).forEach((c: any) => {
@@ -212,7 +212,7 @@ const vScrollReveal = {
             <div class="relative h-48 overflow-hidden bg-slate-100 cursor-pointer" @click="selectedProduct = p">
               <img
                 :src="getProductImg(p)"
-                :alt="p.nama_produk || p.namaProduk"
+                :alt="p.namaProduk"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 @error="handleImageError"
               />
@@ -234,7 +234,7 @@ const vScrollReveal = {
                   class="font-extrabold text-slate-900 text-base leading-snug mb-1.5 group-hover:text-emerald-800 transition-colors cursor-pointer"
                   @click="selectedProduct = p"
                 >
-                  {{ p.nama_produk || p.namaProduk }}
+                  {{ p.namaProduk }}
                 </h3>
                 <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">
                   {{ p.deskripsi }}
@@ -251,7 +251,7 @@ const vScrollReveal = {
                   <span class="text-[10px] text-slate-400 block leading-none font-medium">Harga</span>
                   <span class="text-base font-black text-emerald-800">
                     {{ formatRupiah(p.harga) }}
-                    <span v-if="(p.nama_produk || p.namaProduk).toLowerCase().includes('kukumbul')" class="text-xs font-normal text-slate-500">/ Pack</span>
+                    <span v-if="p.namaProduk.toLowerCase().includes('kukumbul')" class="text-xs font-normal text-slate-500">/ Pack</span>
                     <span v-else class="text-xs font-normal text-slate-500">/ Kodi</span>
                   </span>
                 </div>

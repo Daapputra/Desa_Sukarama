@@ -314,7 +314,7 @@ const vScrollReveal = {
     }
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
+      if (entries[0]?.isIntersecting) {
         requestAnimationFrame(() => {
           if (stagger) {
             Array.from(el.children).forEach((c: any) => {

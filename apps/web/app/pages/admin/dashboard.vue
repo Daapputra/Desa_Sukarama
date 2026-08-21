@@ -280,7 +280,7 @@ async function handleModalSubmit() {
         await apiPut(`/api/pengumuman/${modalData.value.id}`, body)
       }
     } else if (modalType.value === 'umkm') {
-      const nama = modalData.value.nama_produk || modalData.value.namaProduk || ''
+      const nama = modalData.value.namaProduk || ''
       if (!nama || !modalData.value.harga || !modalData.value.pemilik) {
         modalError.value = 'Nama produk, harga, dan nama pemilik wajib diisi'
         return
@@ -291,7 +291,7 @@ async function handleModalSubmit() {
       fd.append('kategori', modalData.value.kategori || 'Makanan')
       fd.append('deskripsi', modalData.value.deskripsi || '')
       fd.append('pemilik', modalData.value.pemilik || '')
-      fd.append('no_wa_pemilik', modalData.value.no_wa_pemilik || modalData.value.noWaPemilik || '')
+      fd.append('no_wa_pemilik', modalData.value.noWaPemilik || '')
       if (modalData.value.fotoFile) {
         fd.append('foto', modalData.value.fotoFile)
       }
@@ -1004,7 +1004,7 @@ function confirmDownloadSurat() {
                   <div>
                     <Label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Produk</Label>
                     <Input
-                      v-model="modalData.nama_produk"
+                      v-model="modalData.namaProduk"
                       type="text"
                       class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                       placeholder="Nama produk UMKM"
@@ -1059,7 +1059,7 @@ function confirmDownloadSurat() {
                   <div>
                     <Label class="block text-xs font-bold text-slate-700 mb-1.5">No. WhatsApp Pemilik</Label>
                     <Input
-                      v-model="modalData.no_wa_pemilik"
+                      v-model="modalData.noWaPemilik"
                       type="text"
                       class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
                       placeholder="Contoh: 081234567890"

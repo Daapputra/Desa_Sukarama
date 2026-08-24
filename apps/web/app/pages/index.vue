@@ -249,6 +249,15 @@ function handleImageError(e: Event) {
   target.src = '/images/products/keripik.jpg'
 }
 
+function getPengumumanImg(p: any): string | null {
+  const foto = Array.isArray(p.fotos) && p.fotos.length > 0 ? p.fotos[0] : null
+  return foto || null
+}
+
+function handlePengumumanImageError(e: Event) {
+  (e.target as HTMLImageElement).style.display = 'none'
+}
+
 function getWhatsappUrl(p: any): string {
   let phone = p.no_wa_pemilik || p.noWaPemilik || '6281234567890'
   phone = phone.replace(/\D/g, '')
@@ -557,21 +566,31 @@ function getWhatsappUrl(p: any): string {
           <div
             v-for="p in pengumumanTampil"
             :key="p.id"
-            class="bg-slate-50/70 rounded-3xl p-6 border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-lg transition-all flex flex-col justify-between"
+            class="bg-slate-50/70 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden"
           >
             <div>
-              <div class="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 mb-3">
-                <Calendar class="w-3.5 h-3.5" />
-                <span>{{ formatTanggal(p.tanggal) }}</span>
+              <div v-if="getPengumumanImg(p)" class="aspect-video w-full overflow-hidden bg-slate-100">
+                <img
+                  :src="getPengumumanImg(p) ?? ''"
+                  :alt="p.judul"
+                  class="w-full h-full object-cover"
+                  @error="handlePengumumanImageError"
+                />
               </div>
-              <h3 class="font-extrabold text-slate-900 text-base leading-snug mb-2">
-                {{ p.judul }}
-              </h3>
-              <p class="text-xs text-slate-500 line-clamp-3 leading-relaxed">
-                {{ p.konten }}
-              </p>
+              <div class="p-6">
+                <div class="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 mb-3">
+                  <Calendar class="w-3.5 h-3.5" />
+                  <span>{{ formatTanggal(p.tanggal) }}</span>
+                </div>
+                <h3 class="font-extrabold text-slate-900 text-base leading-snug mb-2">
+                  {{ p.judul }}
+                </h3>
+                <p class="text-xs text-slate-500 line-clamp-3 leading-relaxed">
+                  {{ p.konten }}
+                </p>
+              </div>
             </div>
-            <div class="pt-4 mt-4 border-t border-slate-200/60 text-[11px] font-bold text-emerald-800">
+            <div class="px-6 pb-6 pt-4 mt-4 border-t border-slate-200/60 text-[11px] font-bold text-emerald-800">
               Pengumuman Resmi Kantor Desa
             </div>
           </div>

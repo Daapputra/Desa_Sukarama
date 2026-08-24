@@ -20,6 +20,14 @@ function parsePengumumanId(id: string): number | null {
   return Number.isInteger(parsed) ? parsed : null
 }
 
+function bufferToDataURI(buffer: Buffer, mimetype: string): string {
+  const b64 = buffer.toString('base64')
+  return `data:${mimetype};base64,${b64}`
+}
+
+const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+const MAX_FOTOS = 3
+
 export async function pengumumanRoutes(fastify: FastifyInstance) {
   // GET /api/pengumuman
   fastify.get('/api/pengumuman', async (request) => {
@@ -56,13 +64,30 @@ export async function pengumumanRoutes(fastify: FastifyInstance) {
     return result[0]
   })
 
-  // POST /api/pengumuman (auth required)
+  // POST /api/pengumuman (auth required, multipart)
   fastify.post('/api/pengumuman', { preHandler: requireAuth }, async (request, reply) => {
-    const { judul, konten, tanggal } = request.body as {
-      judul?: string
-      konten?: string
-      tanggal?: string
+    const parts = request.parts()
+    const fields: Record<string, string> = {}
+    const fotos: string[] = []
+
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        if (part.fieldname === 'foto') {
+          if (fotos.length >= MAX_FOTOS) {
+            return reply.status(400).send({ error: `Maksimal ${MAX_FOTOS} foto per pengumuman` })
+          }
+          if (!allowedImageTypes.has(part.mimetype)) {
+            return reply.status(400).send({ error: 'Foto harus berupa JPG, PNG, GIF, atau WEBP' })
+          }
+          const buffer = await part.toBuffer()
+          fotos.push(bufferToDataURI(buffer, part.mimetype))
+        }
+      } else {
+        fields[part.fieldname] = part.value as string
+      }
     }
+
+    const { judul, konten, tanggal } = fields
 
     if (!judul || !konten || !tanggal) {
       return reply.status(400).send({ error: 'Judul, konten, dan tanggal harus diisi' })
@@ -70,16 +95,19 @@ export async function pengumumanRoutes(fastify: FastifyInstance) {
     if (judul.length > JUDUL_MAX_LENGTH) {
       return reply.status(400).send({ error: `Judul maksimal ${JUDUL_MAX_LENGTH} karakter` })
     }
+    if (fotos.length === 0) {
+      return reply.status(400).send({ error: 'Minimal 1 foto pengumuman harus diunggah' })
+    }
 
     const result = await db
       .insert(pengumuman)
-      .values({ judul, konten, tanggal })
+      .values({ judul, konten, tanggal, fotos })
       .returning({ id: pengumuman.id })
 
-    return reply.status(201).send({ id: result[0].id, judul, konten, tanggal })
+    return reply.status(201).send({ id: result[0].id, judul, konten, tanggal, fotos })
   })
 
-  // PUT /api/pengumuman/:id (auth required)
+  // PUT /api/pengumuman/:id (auth required, multipart)
   fastify.put('/api/pengumuman/:id', { preHandler: requireAuth }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const parsedId = parsePengumumanId(id)
@@ -97,11 +125,26 @@ export async function pengumumanRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Pengumuman tidak ditemukan' })
     }
 
-    const { judul, konten, tanggal } = request.body as {
-      judul?: string
-      konten?: string
-      tanggal?: string
+    const parts = request.parts()
+    const fields: Record<string, string> = {}
+    const newFotos: string[] = []
+
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        if (part.fieldname === 'foto') {
+          if (!allowedImageTypes.has(part.mimetype)) {
+            return reply.status(400).send({ error: 'Foto harus berupa JPG, PNG, GIF, atau WEBP' })
+          }
+          const buffer = await part.toBuffer()
+          newFotos.push(bufferToDataURI(buffer, part.mimetype))
+        }
+      } else {
+        fields[part.fieldname] = part.value as string
+      }
     }
+
+    const row = existing[0]
+    const { judul, konten, tanggal, fotos_existing } = fields
 
     if (judul === '' || konten === '' || tanggal === '') {
       return reply.status(400).send({ error: 'Judul, konten, dan tanggal harus diisi' })
@@ -110,12 +153,28 @@ export async function pengumumanRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: `Judul maksimal ${JUDUL_MAX_LENGTH} karakter` })
     }
 
+    let kept: string[] = row.fotos ?? []
+    if (fotos_existing !== undefined) {
+      try {
+        const parsed = JSON.parse(fotos_existing)
+        kept = Array.isArray(parsed) ? parsed.filter((f) => typeof f === 'string') : []
+      } catch {
+        return reply.status(400).send({ error: 'Data foto tidak valid' })
+      }
+    }
+
+    const finalFotos = [...kept, ...newFotos].slice(0, MAX_FOTOS)
+    if (finalFotos.length === 0) {
+      return reply.status(400).send({ error: 'Minimal 1 foto pengumuman harus diunggah' })
+    }
+
     await db
       .update(pengumuman)
       .set({
-        judul: judul ?? existing[0].judul,
-        konten: konten ?? existing[0].konten,
-        tanggal: tanggal ?? existing[0].tanggal,
+        judul: judul || row.judul,
+        konten: konten || row.konten,
+        tanggal: tanggal || row.tanggal,
+        fotos: finalFotos,
       })
       .where(eq(pengumuman.id, parsedId))
 

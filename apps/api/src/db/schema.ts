@@ -18,6 +18,7 @@ export const pengumuman = pgTable('pengumuman', {
   judul: varchar('judul', { length: 255 }).notNull(),
   konten: text('konten').notNull(),
   tanggal: varchar('tanggal', { length: 50 }).notNull(),
+  fotos: text('fotos').array(),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
   index('idx_pengumuman_tanggal').on(table.tanggal),

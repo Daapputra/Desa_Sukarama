@@ -238,7 +238,7 @@ function openAddModal(type: 'umkm' | 'pengumuman') {
   modalType.value = type
   modalMode.value = 'add'
   modalData.value = type === 'pengumuman'
-    ? { tanggal: todayLocalISODate() }
+    ? { tanggal: todayLocalISODate(), fotoSlots: [null, null, null] }
     : { kategori: 'Makanan' }
   modalError.value = ''
   showModal.value = true
@@ -247,7 +247,9 @@ function openAddModal(type: 'umkm' | 'pengumuman') {
 function openEditModal(type: 'umkm' | 'pengumuman', data: any) {
   modalType.value = type
   modalMode.value = 'edit'
-  modalData.value = { ...data }
+  modalData.value = type === 'pengumuman'
+    ? { ...data, fotoSlots: [...(data.fotos ?? []), null, null, null].slice(0, 3) }
+    : { ...data }
   modalError.value = ''
   showModal.value = true
 }
@@ -268,6 +270,22 @@ function handleFotoChange(e: Event) {
   }
 }
 
+function handlePengumumanFotoChange(e: Event, index: number) {
+  const input = e.target as HTMLInputElement
+  if (input.files?.[0]) {
+    modalData.value.fotoSlots[index] = input.files[0]
+  }
+}
+
+function removePengumumanFoto(index: number) {
+  modalData.value.fotoSlots[index] = null
+}
+
+function pengumumanFotoPreview(slot: string | File | null): string | null {
+  if (!slot) return null
+  return typeof slot === 'string' ? slot : URL.createObjectURL(slot)
+}
+
 async function handleModalSubmit() {
   modalLoading.value = true
   modalError.value = ''
@@ -281,15 +299,27 @@ async function handleModalSubmit() {
         modalError.value = 'Judul pengumuman maksimal 255 karakter'
         return
       }
-      const body = {
-        judul: modalData.value.judul,
-        konten: modalData.value.konten,
-        tanggal: modalData.value.tanggal,
+      const slots: (string | File | null)[] = modalData.value.fotoSlots || []
+      const existingKept = slots.filter((s): s is string => typeof s === 'string')
+      const newFiles = slots.filter((s): s is File => s instanceof File)
+      if (existingKept.length + newFiles.length === 0) {
+        modalError.value = 'Minimal 1 foto pengumuman wajib diunggah'
+        return
       }
+
+      const fd = new FormData()
+      fd.append('judul', modalData.value.judul)
+      fd.append('konten', modalData.value.konten)
+      fd.append('tanggal', modalData.value.tanggal)
+      fd.append('fotos_existing', JSON.stringify(existingKept))
+      for (const file of newFiles) {
+        fd.append('foto', file)
+      }
+
       if (modalMode.value === 'add') {
-        await apiPost('/api/pengumuman', body)
+        await apiPost('/api/pengumuman', fd)
       } else {
-        await apiPut(`/api/pengumuman/${modalData.value.id}`, body)
+        await apiPut(`/api/pengumuman/${modalData.value.id}`, fd)
       }
     } else if (modalType.value === 'umkm') {
       const nama = modalData.value.namaProduk || ''
@@ -743,9 +773,10 @@ function confirmDownloadSurat() {
             <table class="w-full min-w-[760px] text-left table-fixed">
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-200/70">
-                  <th class="w-[22%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Judul Pengumuman</th>
+                  <th class="w-[8%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Foto</th>
+                  <th class="w-[20%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Judul Pengumuman</th>
                   <th class="w-[14%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal Agenda</th>
-                  <th class="w-[52%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Ringkas</th>
+                  <th class="w-[46%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Isi Ringkas</th>
                   <th class="w-[12%] px-5 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                 </tr>
               </thead>
@@ -755,6 +786,17 @@ function confirmDownloadSurat() {
                   :key="p.id"
                   class="hover:bg-slate-50/60 transition-colors"
                 >
+                  <td class="px-5 py-4">
+                    <img
+                      v-if="p.fotos && p.fotos.length"
+                      :src="p.fotos[0]"
+                      class="w-10 h-10 rounded-lg object-cover border border-slate-200"
+                      alt=""
+                    />
+                    <div v-else class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300">
+                      <Newspaper class="w-4 h-4" />
+                    </div>
+                  </td>
                   <td class="px-5 py-4 font-medium text-slate-900 text-sm truncate">
                     {{ p.judul }}
                   </td>
@@ -994,6 +1036,39 @@ function confirmDownloadSurat() {
                     class="w-full px-4 py-2.5 rounded-xl border-slate-200 text-sm focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800 resize-y"
                     placeholder="Tuliskan isi pengumuman secara rinci..."
                   />
+                </div>
+
+                <div>
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    Foto Pengumuman (wajib minimal 1, maksimal 3)
+                  </Label>
+                  <div class="grid grid-cols-3 gap-3">
+                    <div
+                      v-for="(slot, i) in modalData.fotoSlots"
+                      :key="i"
+                      class="relative aspect-square rounded-xl border border-dashed border-slate-300 bg-slate-50 overflow-hidden flex items-center justify-center"
+                    >
+                      <template v-if="slot">
+                        <img :src="pengumumanFotoPreview(slot) ?? ''" class="w-full h-full object-cover" alt="" />
+                        <button
+                          type="button"
+                          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center leading-none"
+                          @click="removePengumumanFoto(i)"
+                        >
+                          &times;
+                        </button>
+                      </template>
+                      <label v-else class="w-full h-full flex flex-col items-center justify-center cursor-pointer text-slate-400 text-[10px] font-semibold text-center px-1">
+                        <span>+ Foto {{ i + 1 }}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="hidden"
+                          @change="handlePengumumanFotoChange($event, i)"
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <Button

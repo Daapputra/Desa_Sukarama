@@ -39,8 +39,8 @@ watch(route, () => {
   <header
     class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
     :class="scrolled
-      ? 'bg-white/95 backdrop-blur-lg shadow-md border-b border-slate-200/80 py-2.5'
-      : 'bg-white/85 backdrop-blur-md border-b border-slate-100 py-3.5'"
+      ? 'bg-white/95 shadow-md border-b border-slate-200/80 py-2.5'
+      : 'bg-white/95 border-b border-slate-100 py-3.5'"
   >
     <div class="container-app flex items-center justify-between">
       <!-- Logo -->
@@ -64,7 +64,7 @@ watch(route, () => {
       </NuxtLink>
 
       <!-- Desktop Nav -->
-      <nav class="hidden lg:flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-50/80 p-1.5 shadow-inner backdrop-blur-md">
+      <nav class="hidden lg:flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-50 p-1.5 shadow-inner">
         <NuxtLink
           v-for="item in navItems"
           :key="item.path"
@@ -117,7 +117,7 @@ watch(route, () => {
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-4"
     >
-      <div v-if="mobileOpen" class="lg:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-2xl px-5 pt-4 pb-6 mt-2 rounded-b-2xl">
+      <div v-if="mobileOpen" class="lg:hidden bg-white border-t border-slate-200 shadow-2xl px-5 pt-4 pb-6 mt-2 rounded-b-2xl">
         <div class="space-y-1.5 mb-5">
           <NuxtLink
             v-for="item in navItems"

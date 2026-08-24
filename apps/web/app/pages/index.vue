@@ -17,7 +17,11 @@ const { apiGet } = useApi()
 
 const hoveredProduct = ref<number | null>(null)
 const isMobile = ref(false)
-const visibleProducts = reactive<Record<number, boolean>>({})
+// Hanya 1 video YouTube boleh autoplay lewat scroll dalam satu waktu (kartu
+// yang paling baru masuk viewport menang) — sebelumnya tiap kartu punya flag
+// visibility sendiri-sendiri, jadi beberapa video bisa autoplay BERSAMAAN
+// saat scroll melewati beberapa kartu sekaligus, yang berat banget di mobile.
+const activeMobileVideoId = ref<number | null>(null)
 
 // Directive for autoplay video on mobile scroll
 const vObserveVisibility = {
@@ -184,14 +188,22 @@ onUnmounted(() => {
 })
 
 
-// Fetch real data. `getCachedData: () => undefined` memaksa refetch tiap kali
-// halaman ini dibuka — default useAsyncData menyimpan hasil fetch pertama
-// selamanya untuk key ini di dalam sesi browser (SPA), jadi tanpa ini,
-// perubahan yang admin buat lewat dashboard tidak akan pernah muncul di sini
-// kecuali browser di-hard-reload.
+// Fetch real data.
+// - `getCachedData: () => undefined` memaksa refetch tiap kali halaman ini
+//   dibuka — default useAsyncData menyimpan hasil fetch pertama selamanya
+//   untuk key ini di dalam sesi browser (SPA), jadi tanpa ini, perubahan yang
+//   admin buat lewat dashboard tidak akan pernah muncul di sini kecuali
+//   browser di-hard-reload.
+// - `server: false` mencegah data ini (termasuk foto base64 yang bisa
+//   beberapa MB) ikut di-serialize ke payload hydration SSR (__NUXT_DATA__) —
+//   tanpa ini, tiap foto terkirim DUA KALI (sekali di HTML, sekali lagi di
+//   JSON hydration), yang bikin halaman depan berat banget saat dimuat/scroll
+//   pertama kali. Konsekuensinya: section ini kosong sesaat lalu terisi
+//   setelah fetch client selesai (bukan langsung ada di HTML awal) — trade-off
+//   yang jauh lebih baik daripada payload beberapa MB.
 const { data: pengumumanList } = useAsyncData('pengumuman', () =>
   apiGet<any[]>('/api/pengumuman?limit=3').catch(() => null),
-  { getCachedData: () => undefined }
+  { getCachedData: () => undefined, server: false }
 )
 
 const pengumumanLokal = [
@@ -208,8 +220,8 @@ const pengumumanTampil = computed(() => {
 })
 
 const { data: umkmList } = useAsyncData('umkm', () =>
-  apiGet<any[]>('/api/umkm').catch(() => []),
-  { getCachedData: () => undefined }
+  apiGet<any[]>('/api/umkm?limit=3').catch(() => []),
+  { getCachedData: () => undefined, server: false }
 )
 
 const stats = [
@@ -803,7 +815,7 @@ function getWhatsappUrl(p: any): string {
             v-for="p in umkmList.slice(0, 3)"
             :key="p.id"
             class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
-            v-observe-visibility="(val) => visibleProducts[p.id] = val"
+            v-observe-visibility="(val) => { if (val) activeMobileVideoId = p.id; else if (activeMobileVideoId === p.id) activeMobileVideoId = null }"
             @mouseenter="hoveredProduct = p.id"
             @mouseleave="hoveredProduct = null"
           >
@@ -813,15 +825,15 @@ function getWhatsappUrl(p: any): string {
                 :src="getProductImg(p)"
                 :alt="p.nama_produk || p.namaProduk"
                 class="w-full h-full object-cover transition-all duration-700 absolute inset-0 z-0"
-                :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'scale-110 blur-sm opacity-50' : 'opacity-100 group-hover:scale-105'"
+                :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'scale-110 blur-sm opacity-50' : 'opacity-100 group-hover:scale-105'"
                 loading="lazy"
                 decoding="async"
                 @error="handleImageError"
               />
-              
+
               <!-- Netflix-style Hover Autoplay Video -->
               <iframe
-                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id]))"
+                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
                 :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
                 title="YouTube video player"
                 frameborder="0"
@@ -831,7 +843,7 @@ function getWhatsappUrl(p: any): string {
               ></iframe>
 
               <!-- Overlay CTA -->
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
                 <span class="text-white text-xs font-bold flex items-center gap-1.5">
                   <Sparkles class="w-3.5 h-3.5 text-emerald-400" />
                   Lihat Detail & Nyalakan Suara
@@ -839,7 +851,7 @@ function getWhatsappUrl(p: any): string {
               </div>
 
               <!-- Category Badge -->
-              <span class="absolute top-4 right-4 text-[10px] font-extrabold px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-emerald-900 shadow-sm z-30 pointer-events-none transition-opacity duration-300" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-100'">
+              <span class="absolute top-4 right-4 text-[10px] font-extrabold px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-emerald-900 shadow-sm z-30 pointer-events-none transition-opacity duration-300" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-100'">
                 {{ p.kategori }}
               </span>
             </div>

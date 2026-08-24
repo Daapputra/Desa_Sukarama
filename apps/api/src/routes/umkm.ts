@@ -31,7 +31,9 @@ function extractYoutubeId(input: string): string | null {
 export async function umkmRoutes(fastify: FastifyInstance) {
   // GET /api/umkm (public)
   fastify.get('/api/umkm', async (request) => {
-    const { kategori } = request.query as { kategori?: string }
+    const { kategori, limit } = request.query as { kategori?: string; limit?: string }
+    const parsedLimit = parseInt(limit ?? '', 10)
+    const l = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 200) : 200
 
     if (kategori && kategori !== 'Semua') {
       return db
@@ -39,9 +41,10 @@ export async function umkmRoutes(fastify: FastifyInstance) {
         .from(umkmProduk)
         .where(eq(umkmProduk.kategori, kategori))
         .orderBy(desc(umkmProduk.createdAt))
+        .limit(l)
     }
 
-    return db.select().from(umkmProduk).orderBy(desc(umkmProduk.createdAt))
+    return db.select().from(umkmProduk).orderBy(desc(umkmProduk.createdAt)).limit(l)
   })
 
   // GET /api/umkm/:id (public)

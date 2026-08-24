@@ -83,7 +83,11 @@ function getWhatsappUrl(p: any): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
 
-const visibleProducts = reactive<Record<number, boolean>>({})
+// Hanya 1 video YouTube boleh autoplay lewat scroll dalam satu waktu (kartu
+// yang paling baru masuk viewport menang) — katalog ini bisa punya banyak
+// produk, jadi tanpa batasan ini beberapa video bisa autoplay bersamaan saat
+// scroll melewati beberapa kartu sekaligus, yang sangat berat di mobile.
+const activeMobileVideoId = ref<number | null>(null)
 
 // Directive for autoplay video on mobile scroll
 const vObserveVisibility = {
@@ -248,7 +252,7 @@ const vScrollReveal = {
             :style="{ transitionDelay: `${idx * 80}ms` }"
             @mouseenter="hoveredProduct = p.id"
             @mouseleave="hoveredProduct = null"
-            v-observe-visibility="(val) => { visibleProducts[p.id] = val }"
+            v-observe-visibility="(val) => { if (val) activeMobileVideoId = p.id; else if (activeMobileVideoId === p.id) activeMobileVideoId = null }"
           >
             <!-- Product Image / Video Hover Preview -->
             <div class="relative h-[240px] md:h-[280px] overflow-hidden bg-slate-900 cursor-pointer flex-shrink-0" @click="selectedProduct = p">
@@ -257,13 +261,13 @@ const vScrollReveal = {
                 :src="getProductImg(p)"
                 :alt="p.nama_produk || p.namaProduk"
                 class="w-full h-full object-cover transition-all duration-700 absolute inset-0 z-0"
-                :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'scale-110 blur-sm opacity-50' : 'opacity-100 group-hover:scale-105'"
+                :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'scale-110 blur-sm opacity-50' : 'opacity-100 group-hover:scale-105'"
                 @error="handleImageError"
               />
-              
+
               <!-- Netflix-style Hover Autoplay Video -->
               <iframe
-                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id]))"
+                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
                 :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
                 title="YouTube video player"
                 frameborder="0"
@@ -273,7 +277,7 @@ const vScrollReveal = {
               ></iframe>
 
               <!-- Overlay CTA -->
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
                 <span class="text-white text-xs font-bold flex items-center gap-1.5">
                   <Sparkles class="w-3.5 h-3.5 text-emerald-400" />
                   Lihat Detail & Nyalakan Suara
@@ -281,7 +285,7 @@ const vScrollReveal = {
               </div>
               
               <!-- Category Badge -->
-              <span class="absolute top-4 right-4 text-[10px] font-extrabold px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-emerald-900 shadow-sm z-30 pointer-events-none transition-opacity duration-300" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-100'">
+              <span class="absolute top-4 right-4 text-[10px] font-extrabold px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-emerald-900 shadow-sm z-30 pointer-events-none transition-opacity duration-300" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-100'">
                 {{ p.kategori }}
               </span>
             </div>

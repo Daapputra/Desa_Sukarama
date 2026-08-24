@@ -420,7 +420,7 @@ function confirmDownloadSurat() {
 
     <SidebarInset class="bg-slate-50/70">
       <!-- Mobile-only slim topbar -->
-      <header class="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 h-14 flex items-center justify-between px-4">
+      <header class="md:hidden sticky top-0 z-30 bg-white border-b border-slate-200/80 h-14 flex items-center justify-between px-4">
         <SidebarTrigger class="text-slate-700" />
         <span class="font-semibold text-slate-900 text-sm">{{ activeTabLabel }}</span>
         <div class="w-9 h-9"></div>

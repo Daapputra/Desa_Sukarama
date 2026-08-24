@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
   ArrowRight, FileText, ShoppingBag, Users, Home, Map, Ruler,
-  ShieldCheck, User, Calendar, MessageCircle, ChevronRight,
-  Building2, Search, HeartHandshake, Sparkles
+  ShieldCheck, User, Calendar, MessageCircle, ChevronRight, ChevronLeft,
+  Building2, Search, HeartHandshake, Sparkles, Images, X
 } from 'lucide-vue-next'
 import { formatTanggal, formatRupiah } from '~/utils/format'
 
@@ -256,6 +256,32 @@ function getPengumumanImg(p: any): string | null {
 
 function handlePengumumanImageError(e: Event) {
   (e.target as HTMLImageElement).style.display = 'none'
+}
+
+const selectedPengumuman = ref<any | null>(null)
+const modalImgIndex = ref(0)
+
+function openPengumumanDetail(p: any) {
+  selectedPengumuman.value = p
+  modalImgIndex.value = 0
+}
+
+function closePengumumanDetail() {
+  selectedPengumuman.value = null
+}
+
+function pengumumanModalFotos(p: any): string[] {
+  return Array.isArray(p?.fotos) ? p.fotos : []
+}
+
+function nextModalImg() {
+  const total = pengumumanModalFotos(selectedPengumuman.value).length
+  if (total > 0) modalImgIndex.value = (modalImgIndex.value + 1) % total
+}
+
+function prevModalImg() {
+  const total = pengumumanModalFotos(selectedPengumuman.value).length
+  if (total > 0) modalImgIndex.value = (modalImgIndex.value - 1 + total) % total
 }
 
 function getWhatsappUrl(p: any): string {
@@ -566,16 +592,24 @@ function getWhatsappUrl(p: any): string {
           <div
             v-for="p in pengumumanTampil"
             :key="p.id"
-            class="bg-slate-50/70 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden"
+            class="bg-slate-50/70 rounded-3xl border border-slate-200/80 hover:bg-white hover:border-emerald-300 hover:shadow-lg hover:-translate-y-1 transition-all flex flex-col justify-between overflow-hidden cursor-pointer"
+            @click="openPengumumanDetail(p)"
           >
             <div>
-              <div v-if="getPengumumanImg(p)" class="aspect-video w-full overflow-hidden bg-slate-100">
+              <div v-if="getPengumumanImg(p)" class="relative aspect-video w-full overflow-hidden bg-slate-100">
                 <img
                   :src="getPengumumanImg(p) ?? ''"
                   :alt="p.judul"
                   class="w-full h-full object-cover"
                   @error="handlePengumumanImageError"
                 />
+                <span
+                  v-if="p.fotos && p.fotos.length > 1"
+                  class="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-950/70 text-white backdrop-blur-sm"
+                >
+                  <Images class="w-3 h-3" />
+                  {{ p.fotos.length }}
+                </span>
               </div>
               <div class="p-6">
                 <div class="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 mb-3">
@@ -598,6 +632,81 @@ function getWhatsappUrl(p: any): string {
         <p v-else class="text-center text-sm text-slate-400 py-8">Belum ada pengumuman terbaru saat ini.</p>
       </div>
     </section>
+
+    <!-- Pengumuman Detail Modal -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div
+        v-if="selectedPengumuman"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"
+        @click.self="closePengumumanDetail"
+      >
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl border border-slate-200 relative">
+          <!-- Close button -->
+          <button
+            class="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+            @click="closePengumumanDetail"
+          >
+            <X class="w-5 h-5" />
+          </button>
+
+          <!-- Image carousel -->
+          <div v-if="pengumumanModalFotos(selectedPengumuman).length" class="relative h-64 md:h-80 bg-slate-100 overflow-hidden">
+            <img
+              :src="pengumumanModalFotos(selectedPengumuman)[modalImgIndex]"
+              :alt="selectedPengumuman.judul"
+              class="w-full h-full object-cover"
+            />
+            <template v-if="pengumumanModalFotos(selectedPengumuman).length > 1">
+              <button
+                class="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                @click.stop="prevModalImg"
+              >
+                <ChevronLeft class="w-5 h-5" />
+              </button>
+              <button
+                class="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+                @click.stop="nextModalImg"
+              >
+                <ChevronRight class="w-5 h-5" />
+              </button>
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
+                <button
+                  v-for="(foto, i) in pengumumanModalFotos(selectedPengumuman)"
+                  :key="i"
+                  class="h-1.5 rounded-full transition-all"
+                  :class="i === modalImgIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/70'"
+                  @click.stop="modalImgIndex = i"
+                ></button>
+              </div>
+            </template>
+          </div>
+
+          <!-- Content -->
+          <div class="p-6">
+            <div class="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 mb-3">
+              <Calendar class="w-3.5 h-3.5" />
+              <span>{{ formatTanggal(selectedPengumuman.tanggal) }}</span>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 leading-tight mb-3">
+              {{ selectedPengumuman.judul }}
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+              {{ selectedPengumuman.konten }}
+            </p>
+            <div class="pt-4 mt-4 border-t border-slate-200/60 text-[11px] font-bold text-emerald-800">
+              Pengumuman Resmi Kantor Desa
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Sorotan Kegiatan -->
     <section class="py-16 bg-white border-t border-slate-200/80">

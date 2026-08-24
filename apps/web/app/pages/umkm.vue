@@ -19,6 +19,23 @@ const selectedProduct = ref<any | null>(null)
 const hoveredProduct = ref<number | null>(null)
 const isMobile = ref(false)
 
+let hoverTimer: ReturnType<typeof setTimeout> | undefined
+
+function onCardEnter(id: number) {
+  clearTimeout(hoverTimer)
+  // Tunggu sebentar sebelum memutar video — kalau mouse cuma numpang lewat
+  // di atas card, video tidak jadi dimuat sama sekali (hemat bandwidth &
+  // menghindari spawn banyak iframe YouTube saat menyapu grid).
+  hoverTimer = setTimeout(() => { hoveredProduct.value = id }, 500)
+}
+
+function onCardLeave() {
+  clearTimeout(hoverTimer)
+  hoveredProduct.value = null
+}
+
+onBeforeUnmount(() => clearTimeout(hoverTimer))
+
 onMounted(() => {
   if (typeof window !== 'undefined') {
     isMobile.value = window.innerWidth < 768
@@ -250,8 +267,8 @@ const vScrollReveal = {
             :key="p.id"
             class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
             :style="{ transitionDelay: `${idx * 80}ms` }"
-            @mouseenter="hoveredProduct = p.id"
-            @mouseleave="hoveredProduct = null"
+            @mouseenter="onCardEnter(p.id)"
+            @mouseleave="onCardLeave()"
             v-observe-visibility="(val) => { if (val) activeMobileVideoId = p.id; else if (activeMobileVideoId === p.id) activeMobileVideoId = null }"
           >
             <!-- Product Image / Video Hover Preview -->
@@ -265,16 +282,22 @@ const vScrollReveal = {
                 @error="handleImageError"
               />
 
-              <!-- Netflix-style Hover Autoplay Video -->
-              <iframe
-                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
-                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
-                title="YouTube video player"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-                class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105"
-              ></iframe>
+              <!-- Netflix-style Hover Autoplay Video.
+                   `mute=1` WAJIB: browser memblokir autoplay yang ada suaranya
+                   tanpa interaksi user (hover tidak dihitung), tanpa ini video
+                   tampil tapi diam. Suara tetap ada di modal detail (dibuka
+                   lewat klik), sesuai teks overlay "Nyalakan Suara". -->
+              <Transition name="video-fade">
+                <iframe
+                  v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
+                  :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
+                  title="YouTube video player"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                  class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105"
+                ></iframe>
+              </Transition>
 
               <!-- Overlay CTA -->
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
@@ -448,4 +471,11 @@ const vScrollReveal = {
   animation: slowZoom 20s ease-in-out infinite alternate;
   will-change: transform;
 }
+
+/* Fade-in video hover di card UMKM — masuk pelan (menyusul foto yang
+   mem-blur), keluar cepat supaya balik ke foto terasa responsif. */
+.video-fade-enter-active { transition: opacity 0.5s ease; }
+.video-fade-enter-from { opacity: 0; }
+.video-fade-leave-active { transition: opacity 0.2s ease; }
+.video-fade-leave-to { opacity: 0; }
 </style>

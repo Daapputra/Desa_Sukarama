@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import { db } from '../db/index.js'
 import { umkmProduk } from '../db/schema.js'
 import { getToken } from '../plugins/auth.js'
@@ -40,11 +40,21 @@ export async function umkmRoutes(fastify: FastifyInstance) {
         .select()
         .from(umkmProduk)
         .where(eq(umkmProduk.kategori, kategori))
-        .orderBy(desc(umkmProduk.createdAt))
+        .orderBy(
+          sql`CASE WHEN ${umkmProduk.namaProduk} ILIKE '%Kukumbul%' THEN 0 ELSE 1 END`,
+          desc(umkmProduk.createdAt)
+        )
         .limit(l)
     }
 
-    return db.select().from(umkmProduk).orderBy(desc(umkmProduk.createdAt)).limit(l)
+    return db
+      .select()
+      .from(umkmProduk)
+      .orderBy(
+        sql`CASE WHEN ${umkmProduk.namaProduk} ILIKE '%Kukumbul%' THEN 0 ELSE 1 END`,
+        desc(umkmProduk.createdAt)
+      )
+      .limit(l)
   })
 
   // GET /api/umkm/:id (public)

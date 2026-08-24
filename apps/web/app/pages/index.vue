@@ -855,12 +855,12 @@ function getWhatsappUrl(p: any): string {
               />
 
               <!-- Netflix-style Hover Autoplay Video.
-                   `mute=1` WAJIB: browser memblokir autoplay yang ada suaranya
-                   tanpa interaksi user (hover tidak dihitung), tanpa ini video
-                   tampil tapi diam. -->
+                   Video dibuat tidak mute (mute=0) sesuai permintaan agar suara
+                   keluar saat hover/scroll. Perhatian: Beberapa browser mungkin
+                   memblokir autoplay bersuara jika user belum berinteraksi dengan halaman. -->
               <iframe
                 v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
-                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
+                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=0&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
                 title="YouTube video player"
                 frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -16,6 +16,7 @@ useHead({
 const { apiGet } = useApi()
 
 const hoveredProduct = ref<number | null>(null)
+const selectedProduct = ref<any | null>(null)
 const isMobile = ref(false)
 // Hanya 1 video YouTube boleh autoplay lewat scroll dalam satu waktu (kartu
 // yang paling baru masuk viewport menang) — sebelumnya tiap kartu punya flag
@@ -837,7 +838,7 @@ function getWhatsappUrl(p: any): string {
             @mouseleave="onCardLeave()"
           >
             <!-- Product Image / Video Hover Preview -->
-            <div class="relative h-[240px] md:h-[280px] overflow-hidden bg-slate-900 flex-shrink-0">
+            <div class="relative h-[240px] md:h-[280px] overflow-hidden bg-slate-900 cursor-pointer flex-shrink-0" @click="selectedProduct = p">
               <img
                 :src="getProductImg(p)"
                 :alt="p.nama_produk || p.namaProduk"
@@ -852,17 +853,15 @@ function getWhatsappUrl(p: any): string {
                    `mute=1` WAJIB: browser memblokir autoplay yang ada suaranya
                    tanpa interaksi user (hover tidak dihitung), tanpa ini video
                    tampil tapi diam. -->
-              <Transition name="video-fade">
-                <iframe
-                  v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
-                  :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
-                  title="YouTube video player"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                  class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105"
-                ></iframe>
-              </Transition>
+              <iframe
+                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
+                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105 video-fade-in"
+              ></iframe>
 
               <!-- Overlay CTA -->
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
@@ -880,7 +879,10 @@ function getWhatsappUrl(p: any): string {
 
             <div class="p-5 flex-1 flex flex-col justify-between">
               <div>
-                <h3 class="font-extrabold text-slate-900 text-sm leading-snug mb-1 group-hover:text-emerald-800 transition-colors">
+                <h3
+                  class="font-extrabold text-slate-900 text-sm leading-snug mb-1 group-hover:text-emerald-800 transition-colors cursor-pointer"
+                  @click="selectedProduct = p"
+                >
                   {{ p.nama_produk || p.namaProduk }}
                 </h3>
                 <p class="text-[11px] text-slate-500 mb-3">Oleh: {{ p.pemilik }}</p>
@@ -906,6 +908,93 @@ function getWhatsappUrl(p: any): string {
         <p v-else class="text-center text-sm text-slate-400 py-8">Belum ada produk UMKM unggulan saat ini.</p>
       </div>
     </section>
+
+    <!-- Product Detail Modal -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div
+        v-if="selectedProduct"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"
+        @click.self="selectedProduct = null"
+      >
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl border border-slate-200 relative">
+          <!-- Close button -->
+          <button
+            class="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+            @click="selectedProduct = null"
+          >
+            <X class="w-5 h-5" />
+          </button>
+
+          <!-- Modal Image / Video (dibuka lewat klik = interaksi user,
+               jadi boleh autoplay BERSUARA — beda dengan preview hover) -->
+          <div class="h-64 md:h-80 bg-slate-100 overflow-hidden relative">
+            <iframe
+              v-if="selectedProduct.ytId"
+              :src="`https://www.youtube.com/embed/${selectedProduct.ytId}?autoplay=1`"
+              title="YouTube video player"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              class="w-full h-full absolute inset-0"
+            ></iframe>
+            <img
+              v-else
+              :src="getProductImg(selectedProduct)"
+              :alt="selectedProduct.namaProduk"
+              class="w-full h-full object-cover"
+              @error="handleImageError"
+            />
+            <span class="absolute bottom-3 left-3 text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 text-white shadow-md pointer-events-none z-10">
+              {{ selectedProduct.kategori }}
+            </span>
+          </div>
+
+          <!-- Modal Content -->
+          <div class="p-6">
+            <div class="flex justify-between items-start gap-3 mb-2">
+              <h3 class="text-xl font-black text-slate-900 leading-tight">
+                {{ selectedProduct.namaProduk }}
+              </h3>
+              <span class="text-lg font-black text-emerald-800 whitespace-nowrap">
+                {{ formatRupiah(selectedProduct.harga) }}
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed mb-6">
+              {{ selectedProduct.deskripsi }}
+            </p>
+
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 mb-6 text-xs">
+              <div class="flex justify-between">
+                <span class="text-slate-500">Produsen / Pemilik</span>
+                <span class="font-bold text-slate-800">{{ selectedProduct.pemilik }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Kontak WhatsApp</span>
+                <span class="font-mono text-emerald-800 font-semibold">{{ selectedProduct.noWaPemilik }}</span>
+              </div>
+            </div>
+
+            <a
+              :href="getWhatsappUrl(selectedProduct)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="w-full py-3.5 rounded-2xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all"
+            >
+              <MessageCircle class="w-4 h-4" />
+              <span>Hubungi &amp; Pesan Sekarang via WhatsApp</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Call To Action Aspirasi Warga -->
     <section class="py-16 bg-gradient-to-br from-emerald-900 to-slate-900 text-white" v-scroll-reveal="{ type: 'zoom' }">
@@ -1031,11 +1120,15 @@ function getWhatsappUrl(p: any): string {
   opacity: 0;
 }
 
-/* Fade-in video hover di card UMKM — masuk pelan (menyusul foto yang
-   mem-blur), keluar cepat supaya balik ke foto terasa responsif. */
-.video-fade-enter-active { transition: opacity 0.5s ease; }
-.video-fade-enter-from { opacity: 0; }
-.video-fade-leave-active { transition: opacity 0.2s ease; }
-.video-fade-leave-to { opacity: 0; }
+/* Fade-in video hover di card UMKM. Sengaja pakai CSS animation (bukan
+   <Transition>) supaya struktur DOM di dalam area yang bisa diklik tidak
+   berubah sama sekali. */
+@keyframes videoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.video-fade-in {
+  animation: videoFadeIn 0.5s ease forwards;
+}
 </style>
 

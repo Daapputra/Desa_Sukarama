@@ -287,17 +287,15 @@ const vScrollReveal = {
                    tanpa interaksi user (hover tidak dihitung), tanpa ini video
                    tampil tapi diam. Suara tetap ada di modal detail (dibuka
                    lewat klik), sesuai teks overlay "Nyalakan Suara". -->
-              <Transition name="video-fade">
-                <iframe
-                  v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
-                  :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
-                  title="YouTube video player"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                  class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105"
-                ></iframe>
-              </Transition>
+              <iframe
+                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id))"
+                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&mute=1&playsinline=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105 video-fade-in"
+              ></iframe>
 
               <!-- Overlay CTA -->
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && activeMobileVideoId === p.id)) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
@@ -472,10 +470,14 @@ const vScrollReveal = {
   will-change: transform;
 }
 
-/* Fade-in video hover di card UMKM — masuk pelan (menyusul foto yang
-   mem-blur), keluar cepat supaya balik ke foto terasa responsif. */
-.video-fade-enter-active { transition: opacity 0.5s ease; }
-.video-fade-enter-from { opacity: 0; }
-.video-fade-leave-active { transition: opacity 0.2s ease; }
-.video-fade-leave-to { opacity: 0; }
+/* Fade-in video hover di card UMKM. Sengaja pakai CSS animation (bukan
+   <Transition>) supaya struktur DOM di dalam area yang bisa diklik tidak
+   berubah sama sekali. */
+@keyframes videoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.video-fade-in {
+  animation: videoFadeIn 0.5s ease forwards;
+}
 </style>

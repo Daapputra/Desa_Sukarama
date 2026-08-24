@@ -239,7 +239,7 @@ function openAddModal(type: 'umkm' | 'pengumuman') {
   modalMode.value = 'add'
   modalData.value = type === 'pengumuman'
     ? { tanggal: todayLocalISODate(), fotoSlots: [null, null, null] }
-    : { kategori: 'Makanan' }
+    : { kategori: 'Makanan', ytLink: '' }
   modalError.value = ''
   showModal.value = true
 }
@@ -249,7 +249,7 @@ function openEditModal(type: 'umkm' | 'pengumuman', data: any) {
   modalMode.value = 'edit'
   modalData.value = type === 'pengumuman'
     ? { ...data, fotoSlots: [...(data.fotos ?? []), null, null, null].slice(0, 3) }
-    : { ...data }
+    : { ...data, ytLink: data.ytId || '' }
   modalError.value = ''
   showModal.value = true
 }
@@ -334,6 +334,7 @@ async function handleModalSubmit() {
       fd.append('deskripsi', modalData.value.deskripsi || '')
       fd.append('pemilik', modalData.value.pemilik || '')
       fd.append('no_wa_pemilik', modalData.value.noWaPemilik || '')
+      fd.append('yt_link', modalData.value.ytLink || '')
       if (modalData.value.fotoFile) {
         fd.append('foto', modalData.value.fotoFile)
       }
@@ -1162,6 +1163,16 @@ function confirmDownloadSurat() {
                     accept="image/*"
                     class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100"
                     @change="handleFotoChange"
+                  />
+                </div>
+
+                <div>
+                  <Label class="block text-xs font-bold text-slate-700 mb-1.5">Link Video YouTube (Opsional)</Label>
+                  <Input
+                    v-model="modalData.ytLink"
+                    type="text"
+                    class="w-full h-auto px-3.5 py-2.5 rounded-xl border-slate-200 text-xs focus-visible:ring-2 focus-visible:ring-emerald-800/20 focus-visible:border-emerald-800"
+                    placeholder="https://youtube.com/watch?v=... atau https://youtu.be/..."
                   />
                 </div>
 

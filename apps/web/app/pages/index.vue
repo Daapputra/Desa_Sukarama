@@ -206,28 +206,6 @@ const { data: umkmList } = useAsyncData('umkm', () =>
   apiGet<any[]>('/api/umkm').catch(() => [])
 )
 
-const produkUnggulanLokal = [
-  { id: 5, namaProduk: 'Kukumbul (Pelampung Pancing)', harga: 80000, kategori: 'Kerajinan', pemilik: 'Pengrajin Kukumbul', noWaPemilik: '6281573276932', fotoPath: '/images/kukumbul.jpeg', ytId: 'znTmT3Ovk7w' },
-  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 150000, kategori: 'Kerajinan', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6283817916016', fotoPath: '/images/sapu injuk.jpeg', ytId: '20vErQ0hn14' },
-  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 140000, kategori: 'Kerajinan', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6285943097900', fotoPath: '/images/doranpacul.jpeg', ytId: 'qKSE2ijrqjA' },
-  { id: 1, namaProduk: 'Keripik Singkong Pedas', harga: 15000, kategori: 'Makanan', pemilik: 'Bu Enah', noWaPemilik: '6281234567890', fotoPath: '/images/products/keripik.jpg' },
-]
-
-const produkUnggulan = computed(() => {
-  let list = produkUnggulanLokal
-  if (umkmList.value && umkmList.value.length > 0) {
-    list = [...produkUnggulanLokal, ...umkmList.value]
-  }
-  
-  const seen = new Set()
-  return list.filter((item: any) => {
-    const name = (item.namaProduk || item.nama_produk || '').toLowerCase().trim()
-    if (seen.has(name)) return false
-    seen.add(name)
-    return true
-  }).slice(0, 4)
-})
-
 const stats = [
   { icon: Users, label: 'Penduduk Terindeks', value: 7526, suffix: '+', desc: 'Jiwa di Database Desa' },
   { icon: Home, label: 'Kepala Keluarga', value: 3100, suffix: '+', desc: 'Terdaftar di KK' },
@@ -814,9 +792,9 @@ function getWhatsappUrl(p: any): string {
           </NuxtLink>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6" v-scroll-reveal="{ stagger: true }">
+        <div v-if="umkmList && umkmList.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6" v-scroll-reveal="{ stagger: true }">
           <div
-            v-for="p in produkUnggulan.slice(0, 3)"
+            v-for="p in umkmList.slice(0, 3)"
             :key="p.id"
             class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
             v-observe-visibility="(val) => visibleProducts[p.id] = val"
@@ -885,6 +863,7 @@ function getWhatsappUrl(p: any): string {
             </div>
           </div>
         </div>
+        <p v-else class="text-center text-sm text-slate-400 py-8">Belum ada produk UMKM unggulan saat ini.</p>
       </div>
     </section>
 

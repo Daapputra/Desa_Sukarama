@@ -30,13 +30,6 @@ onMounted(() => {
 
 const kategoriList = ['Semua', 'Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya']
 
-// Foto produk lokal sebagai fallback visual yang tetap elegan
-const produkLokal = [
-  { id: 5, namaProduk: 'Kukumbul (Pelampung Pancing)', harga: 80000, kategori: 'Kerajinan', deskripsi: 'Kerajinan pelampung pancing (kukumbul) buatan tangan berkualitas.', pemilik: 'Pengrajin Kukumbul', noWaPemilik: '6281573276932', fotoPath: '/images/kukumbul.jpeg', ytId: 'znTmT3Ovk7w' },
-  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 150000, kategori: 'Kerajinan', deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6283817916016', fotoPath: '/images/sapu injuk.jpeg', ytId: '20vErQ0hn14' },
-  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 140000, kategori: 'Kerajinan', deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6285943097900', fotoPath: '/images/doranpacul.jpeg', ytId: 'qKSE2ijrqjA' },
-  { id: 8, namaProduk: 'Pentol Jagoan', harga: 5000, kategori: 'Makanan', deskripsi: 'Pentol Jagoan yang lezat dan gurih. Harga satuan bervariasi dari Rp 1.000, Rp 2.000, hingga Rp 5.000.', pemilik: 'Pentol Jagoan', noWaPemilik: '6283871171146', fotoPath: '/images/products/pentol_jagoan.jpg' },
-]
 const { data: dbProduk } = useAsyncData('umkm-all', () =>
   apiGet<any[]>('/api/umkm').catch(() => []),
   { server: false }

@@ -54,6 +54,7 @@ export const umkmProduk = pgTable('umkm_produk', {
   pemilik: varchar('pemilik', { length: 255 }).notNull(),
   noWaPemilik: varchar('no_wa_pemilik', { length: 50 }).notNull(),
   fotoPath: text('foto_path'),
+  ytId: varchar('yt_id', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => [
   check('umkm_produk_kategori_check', sql`${table.kategori} IN ('Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya')`),

@@ -20,6 +20,14 @@ function bufferToDataURI(buffer: Buffer, mimetype: string): string {
 
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
+function extractYoutubeId(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  if (/^[\w-]{11}$/.test(trimmed)) return trimmed
+  const match = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)
+  return match ? match[1] : null
+}
+
 export async function umkmRoutes(fastify: FastifyInstance) {
   // GET /api/umkm (public)
   fastify.get('/api/umkm', async (request) => {
@@ -71,10 +79,18 @@ export async function umkmRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const { nama_produk, harga, kategori, deskripsi, pemilik, no_wa_pemilik } = fields
+    const { nama_produk, harga, kategori, deskripsi, pemilik, no_wa_pemilik, yt_link } = fields
 
     if (!nama_produk || !harga || !kategori || !deskripsi || !pemilik || !no_wa_pemilik) {
       return reply.status(400).send({ error: 'Semua field harus diisi' })
+    }
+
+    let ytId: string | null = null
+    if (yt_link && yt_link.trim()) {
+      ytId = extractYoutubeId(yt_link)
+      if (!ytId) {
+        return reply.status(400).send({ error: 'Link YouTube tidak valid. Gunakan link seperti https://youtube.com/watch?v=... atau https://youtu.be/...' })
+      }
     }
 
     const result = await db
@@ -87,6 +103,7 @@ export async function umkmRoutes(fastify: FastifyInstance) {
         pemilik,
         noWaPemilik: no_wa_pemilik,
         fotoPath,
+        ytId,
       })
       .returning({ id: umkmProduk.id })
 
@@ -126,6 +143,14 @@ export async function umkmRoutes(fastify: FastifyInstance) {
 
     const row = existing[0]
 
+    let ytId: string | null = null
+    if (fields.yt_link && fields.yt_link.trim()) {
+      ytId = extractYoutubeId(fields.yt_link)
+      if (!ytId) {
+        return reply.status(400).send({ error: 'Link YouTube tidak valid. Gunakan link seperti https://youtube.com/watch?v=... atau https://youtu.be/...' })
+      }
+    }
+
     await db
       .update(umkmProduk)
       .set({
@@ -136,6 +161,7 @@ export async function umkmRoutes(fastify: FastifyInstance) {
         pemilik: fields.pemilik || row.pemilik,
         noWaPemilik: fields.no_wa_pemilik || row.noWaPemilik,
         fotoPath: fotoPath || row.fotoPath,
+        ytId,
       })
       .where(eq(umkmProduk.id, parseInt(id)))
 

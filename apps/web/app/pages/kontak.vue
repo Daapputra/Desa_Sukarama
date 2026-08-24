@@ -105,8 +105,15 @@ const vScrollReveal = {
 <template>
   <div class="min-h-screen bg-slate-50/60 pb-24">
     <!-- Hero Section -->
-    <section class="relative py-20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 overflow-hidden text-white">
-      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
+    <section class="relative py-24 md:py-28 overflow-hidden text-white">
+      <!-- Background Image -->
+      <img src="/images/kantordesa3.png" alt="Background Kontak" class="absolute inset-0 w-full h-full object-cover object-[50%_65%] md:object-[50%_55%] z-0 animate-slow-pan" />
+      
+      <!-- Clean Dark Overlay (Tanpa Hijau Tebal) -->
+      <div class="absolute inset-0 z-[1] bg-gradient-to-tr from-slate-950 via-slate-900/80 to-slate-900/40"></div>
+      <!-- Subtle Grid Pattern (Opsional, lebih elegan dari titik) -->
+      <div class="absolute inset-0 z-[2] opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:40px_40px]"></div>
+
       <div class="container-app relative z-10 text-center">
         <div class="inline-flex items-center gap-2 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-4 backdrop-blur-sm">
           <NuxtLink to="/" class="hover:text-white transition-colors">Beranda</NuxtLink>
@@ -248,3 +255,14 @@ const vScrollReveal = {
     </section>
   </div>
 </template>
+
+<style scoped>
+@keyframes slowZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+.animate-slow-zoom {
+  animation: slowZoom 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+</style>

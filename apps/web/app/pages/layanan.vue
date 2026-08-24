@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {
   ChevronRight, Search, FileText, CheckCircle2, AlertCircle, Loader2, Download,
-  Upload, UserCheck, ShieldCheck, Building2, FileCheck2, Sparkles, FileQuestion, Check, X
+  Upload, UserCheck, ShieldCheck, Building2, FileCheck2, Sparkles, FileQuestion, Check, X,
+  MapPinned, Store, IdCard, Handshake
 } from 'lucide-vue-next'
 import { formatTanggal, getStatusColor } from '~/utils/format'
 
@@ -95,28 +96,28 @@ const jenisSuratOptions = [
     id: 'Surat Keterangan Domisili',
     title: 'Surat Keterangan Domisili',
     desc: 'Surat keterangan bukti domisili tempat tinggal sah di wilayah Desa Sukarama.',
-    icon: Building2,
+    icon: MapPinned,
     badge: 'Paling Sering Digunakan'
   },
   {
     id: 'Surat Keterangan Usaha',
     title: 'Surat Keterangan Usaha (SKU)',
     desc: 'Surat legalitas keterangan kepemilikan usaha aktif di desa untuk pinjaman/izin.',
-    icon: FileCheck2,
+    icon: Store,
     badge: 'Untuk Pelaku Usaha'
   },
   {
     id: 'Surat Beda Nama',
     title: 'Surat Beda Nama (KTP vs KK)',
     desc: 'Klarifikasi resmi perbedaan ejaan nama antara Kartu Keluarga dan KTP/Ijazah.',
-    icon: FileQuestion,
+    icon: IdCard,
     badge: 'Koreksi Data'
   },
   {
     id: 'Surat Pernyataan Kesediaan Mengikuti Program/Kegiatan Tertentu',
     title: 'Surat Pernyataan Program',
     desc: 'Surat pernyataan keikutsertaan program bantuan/kegiatan pemberdayaan.',
-    icon: Sparkles,
+    icon: Handshake,
     badge: 'Program Pemerintah'
   },
 ]
@@ -341,8 +342,15 @@ const vScrollReveal = {
 <template>
   <div class="min-h-screen bg-slate-50/60 pb-20">
     <!-- Page Hero -->
-    <section class="relative py-20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 overflow-hidden text-white">
-      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
+    <section class="relative py-24 md:py-28 overflow-hidden text-white">
+      <!-- Background Image -->
+      <img src="/images/kantordesa3.png" alt="Background Layanan" class="absolute inset-0 w-full h-full object-cover object-[50%_65%] md:object-[50%_55%] z-0 animate-slow-pan" />
+      
+      <!-- Clean Dark Overlay (Tanpa Hijau Tebal) -->
+      <div class="absolute inset-0 z-[1] bg-gradient-to-tr from-slate-950 via-slate-900/80 to-slate-900/40"></div>
+      <!-- Subtle Grid Pattern (Opsional, lebih elegan dari titik) -->
+      <div class="absolute inset-0 z-[2] opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:40px_40px]"></div>
+
       <div class="container-app relative z-10 text-center">
         <div class="inline-flex items-center gap-2 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-4 backdrop-blur-sm">
           <NuxtLink to="/" class="hover:text-white transition-colors">Beranda</NuxtLink>
@@ -377,23 +385,23 @@ const vScrollReveal = {
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="flex justify-center mb-10">
-          <div class="inline-flex p-1.5 rounded-full bg-slate-200/70 border border-slate-300/80 shadow-inner">
+        <div class="flex mb-10 overflow-x-auto pb-2">
+          <div class="inline-flex mx-auto p-1.5 rounded-full bg-slate-200/70 border border-slate-300/80 shadow-inner">
             <button
-              class="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200"
+              class="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 active:scale-90 hover:-translate-y-0.5"
               :class="activeTab === 'ajukan'
-                ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25'
-                : 'text-slate-600 hover:text-emerald-900'"
+                ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25 scale-105'
+                : 'text-slate-600 hover:text-emerald-900 hover:shadow-sm'"
               @click="activeTab = 'ajukan'"
             >
               <FileText class="w-4 h-4" />
               <span>Buat Pengajuan Surat</span>
             </button>
             <button
-              class="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200"
+              class="flex items-center gap-2 px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 active:scale-90 hover:-translate-y-0.5"
               :class="activeTab === 'cek'
-                ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25'
-                : 'text-slate-600 hover:text-emerald-900'"
+                ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/25 scale-105'
+                : 'text-slate-600 hover:text-emerald-900 hover:shadow-sm'"
               @click="activeTab = 'cek'"
             >
               <Search class="w-4 h-4" />
@@ -871,3 +879,14 @@ const vScrollReveal = {
     </section>
   </div>
 </template>
+
+<style scoped>
+@keyframes slowZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+.animate-slow-zoom {
+  animation: slowZoom 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+</style>

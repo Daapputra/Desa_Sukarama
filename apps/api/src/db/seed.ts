@@ -16,7 +16,7 @@ export const seedPengumumanData = [
     tanggal: '2026-07-01',
   },
   {
-    judul: 'Pendaftaran BLT Dana Desa Tahap II Tahun 2026',
+    judul: 'Pengumuman BLT Dana Desa Tahap II Tahun 2026',
     konten: 'Pemerintah Desa Sukarama membuka pendaftaran penerima Bantuan Langsung Tunai (BLT) Dana Desa Tahap II Tahun 2026.\n\nSyarat:\n• Warga Desa Sukarama yang terdaftar di DTKS\n• Keluarga pra-sejahtera\n• Membawa KTP, KK, dan surat keterangan tidak mampu\n\nPendaftaran dibuka mulai 15 Juli – 31 Juli 2026 di Kantor Desa Sukarama.\n\nInformasi lebih lanjut hubungi Sekretariat Desa.',
     tanggal: '2026-07-10',
   },

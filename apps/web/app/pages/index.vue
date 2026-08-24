@@ -2,7 +2,7 @@
 import {
   ArrowRight, FileText, ShoppingBag, Users, Home, Map, Ruler,
   ShieldCheck, User, Calendar, MessageCircle, ChevronRight,
-  Building2, Search, HeartHandshake
+  Building2, Search, HeartHandshake, Sparkles
 } from 'lucide-vue-next'
 import { formatTanggal, formatRupiah } from '~/utils/format'
 
@@ -14,6 +14,44 @@ useHead({
 })
 
 const { apiGet } = useApi()
+
+const hoveredProduct = ref<number | null>(null)
+const isMobile = ref(false)
+const visibleProducts = reactive<Record<number, boolean>>({})
+
+// Directive for autoplay video on mobile scroll
+const vObserveVisibility = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        binding.value(true)
+      } else {
+        binding.value(false)
+      }
+    }, { threshold: 0.6 })
+    
+    setTimeout(() => { observer.observe(el) }, 100)
+    ;(el as any)._visibilityObserver = observer
+  },
+  unmounted(el: HTMLElement) {
+    if ((el as any)._visibilityObserver) {
+      (el as any)._visibilityObserver.disconnect()
+    }
+  }
+}
+
+const galeriKegiatan = [
+  { image: '/images/kegiatan1.png', title: 'Perayaan Kemerdekaan', desc: 'Kemeriahan warga Desa Sukarama merayakan HUT RI ke-79.' },
+  { image: '/images/kegiatan2.png', title: 'Lomba Tradisional', desc: 'Antusiasme warga dalam mengikuti berbagai perlombaan 17 Agustus.' },
+  { image: '/images/kegiatan3.png', title: 'Karnaval Desa', desc: 'Pawai budaya dan karnaval meriah mengelilingi jalan utama desa.' },
+  { image: '/images/kegiatan4.JPG', title: 'Gotong Royong Warga', desc: 'Kekompakan warga dalam mempersiapkan acara kemerdekaan.' },
+  { image: '/images/kegiatan5.JPG', title: 'Malam Puncak Kemerdekaan', desc: 'Acara hiburan dan pembagian hadiah bagi para pemenang lomba.' },
+  { image: '/images/kegiatan6.JPG', title: 'Kreativitas Anak Muda', desc: 'Partisipasi pemuda-pemudi desa dalam menyukseskan acara.' },
+  { image: '/images/kegiatan7.JPG', title: 'Kebersamaan Warga', desc: 'Momen kehangatan dan silaturahmi seluruh elemen warga desa.' },
+  { image: '/images/kegiatan8.JPG', title: 'Lomba Anak-anak', desc: 'Keseruan lomba balap karung dan makan kerupuk anak-anak.' },
+  { image: '/images/kegiatan9.png', title: 'Hiburan Rakyat', desc: 'Pentas seni dan hiburan penutup perayaan kemerdekaan.' },
+]
 
 // Hero slideshow
 const heroImages = [
@@ -133,6 +171,12 @@ const vCountUp = {
 
 onMounted(() => {
   resetInterval()
+  if (typeof window !== 'undefined') {
+    isMobile.value = window.innerWidth < 768
+    window.addEventListener('resize', () => {
+      isMobile.value = window.innerWidth < 768
+    })
+  }
 })
 
 onUnmounted(() => {
@@ -162,24 +206,32 @@ const { data: umkmList } = useAsyncData('umkm', () =>
 )
 
 const produkUnggulanLokal = [
-  { id: 1, namaProduk: 'Keripik Singkong Pedas Bu Enah', harga: 15000, kategori: 'Makanan', pemilik: 'Bu Enah', noWaPemilik: '6281234567890', fotoPath: '/images/products/keripik.jpg' },
-  { id: 2, namaProduk: 'Dodol Cianjur Pak Oman', harga: 25000, kategori: 'Makanan', pemilik: 'Pak Oman', noWaPemilik: '6281234567891', fotoPath: '/images/products/dodol.jpg' },
-  { id: 3, namaProduk: 'Anyaman Bambu Mang Dadang', harga: 75000, kategori: 'Kerajinan', pemilik: 'Mang Dadang', noWaPemilik: '6281234567892', fotoPath: '/images/products/anyaman.jpg' },
-  { id: 4, namaProduk: 'Gula Aren Asli Pak Udin', harga: 35000, kategori: 'Hasil Tani', pemilik: 'Pak Udin', noWaPemilik: '6281234567893', fotoPath: '/images/products/gula-aren.jpg' },
+  { id: 5, namaProduk: 'Kukumbul (Pelampung Pancing)', harga: 80000, kategori: 'Kerajinan', pemilik: 'Pengrajin Kukumbul', noWaPemilik: '6281573276932', fotoPath: '/images/kukumbul.jpeg', ytId: 'znTmT3Ovk7w' },
+  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 150000, kategori: 'Kerajinan', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6283817916016', fotoPath: '/images/sapu injuk.jpeg', ytId: '20vErQ0hn14' },
+  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 140000, kategori: 'Kerajinan', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6285943097900', fotoPath: '/images/doranpacul.jpeg', ytId: 'qKSE2ijrqjA' },
+  { id: 1, namaProduk: 'Keripik Singkong Pedas', harga: 15000, kategori: 'Makanan', pemilik: 'Bu Enah', noWaPemilik: '6281234567890', fotoPath: '/images/products/keripik.jpg' },
 ]
 
 const produkUnggulan = computed(() => {
+  let list = produkUnggulanLokal
   if (umkmList.value && umkmList.value.length > 0) {
-    return umkmList.value.slice(0, 4)
+    list = [...produkUnggulanLokal, ...umkmList.value]
   }
-  return produkUnggulanLokal
+  
+  const seen = new Set()
+  return list.filter((item: any) => {
+    const name = (item.namaProduk || item.nama_produk || '').toLowerCase().trim()
+    if (seen.has(name)) return false
+    seen.add(name)
+    return true
+  }).slice(0, 4)
 })
 
 const stats = [
-  { icon: Users, label: 'Penduduk Terindeks', value: 7532, suffix: '+', desc: 'Jiwa di Database Desa' },
-  { icon: Home, label: 'Kepala Keluarga', value: 1950, suffix: '+', desc: 'Terdaftar di KK' },
+  { icon: Users, label: 'Penduduk Terindeks', value: 7526, suffix: '+', desc: 'Jiwa di Database Desa' },
+  { icon: Home, label: 'Kepala Keluarga', value: 3100, suffix: '+', desc: 'Terdaftar di KK' },
   { icon: Map, label: 'Wilayah Desa', value: 3, suffix: ' Dusun', desc: '6 RW & 33 RT' },
-  { icon: Ruler, label: 'Luas Wilayah', value: 485, suffix: ' Ha', desc: 'Lahan Produktif & Pemukiman' },
+  { icon: Ruler, label: 'Luas Wilayah', value: 1186, suffix: ' Ha', desc: 'Lahan Produktif & Pemukiman' },
 ]
 
 function getProductImg(produk: any) {
@@ -265,45 +317,55 @@ function getWhatsappUrl(p: any): string {
       <!-- Hero Content -->
       <div class="container-app relative z-20 py-20 md:py-32 text-center text-white mt-8 md:mt-0">
         <div class="max-w-4xl mx-auto">
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-4 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-sm font-semibold tracking-wide uppercase mb-4 md:mb-8 backdrop-blur-md shadow-lg shadow-black/20 animate-fade-in">
+          <div class="animate-hero-1 inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-4 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-sm font-semibold tracking-wide uppercase mb-4 md:mb-8 backdrop-blur-md shadow-lg shadow-black/20">
               <ShieldCheck class="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
               <span>Portal Resmi Pemerintah Desa Sukarama</span>
             </div>
 
-          <h1 class="text-2xl sm:text-5xl md:text-6xl font-black text-white leading-[1.2] tracking-tight mb-3 md:mb-6 drop-shadow-lg">
+          <h1 class="animate-hero-2 text-2xl sm:text-5xl md:text-6xl font-black text-white leading-[1.2] tracking-tight mb-3 md:mb-6 drop-shadow-lg">
             Mewujudkan Pelayanan Publik Desa yang Cerdas, Cepat & Terintegrasi
           </h1>
 
-          <p class="text-[13px] sm:text-lg text-emerald-100/90 leading-relaxed mb-6 md:mb-10 max-w-2xl mx-auto drop-shadow">
+          <p class="animate-hero-3 text-[13px] sm:text-lg text-emerald-100/90 leading-relaxed mb-6 md:mb-10 max-w-2xl mx-auto drop-shadow">
             Kecamatan Bojongpicung, Kabupaten Cianjur, Jawa Barat.<br class="hidden sm:inline">
             Nikmati kemudahan pembuatan surat administrasi online, katalog produk UMKM lokal, dan transparansi informasi desa.
           </p>
 
-          <div class="flex flex-col sm:flex-row justify-center gap-2.5 md:gap-4 px-4 sm:px-0">
-            <NuxtLink
-              to="/layanan"
-              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 md:px-8 md:py-4 rounded-full bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-emerald-950/30 hover:-translate-y-0.5 transition-all duration-300"
-            >
-              <FileText class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Ajukan Surat Online</span>
-              <ArrowRight class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </NuxtLink>
+          <div class="flex flex-col sm:flex-row justify-center gap-2.5 md:gap-4 px-4 sm:px-0 w-full">
+            <div class="animate-hero-4 w-full sm:w-auto">
+              <NuxtLink
+                to="/layanan"
+                class="group relative flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-4 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-800 text-white font-extrabold text-xs sm:text-sm overflow-hidden shadow-xl shadow-emerald-950/30 hover:shadow-2xl hover:shadow-emerald-900/50 hover:-translate-y-1 hover:scale-105 active:scale-90 active:-translate-y-0 active:shadow-inner transition-all duration-300 ease-out border border-emerald-500/30 w-full"
+              >
+                <!-- Ripple/Shine effect layer -->
+                <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></span>
+                <FileText class="w-4 h-4 group-hover:rotate-12 group-active:-rotate-12 transition-transform duration-300" />
+                <span class="relative">Ajukan Surat Online</span>
+                <ArrowRight class="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300" />
+              </NuxtLink>
+            </div>
 
-            <NuxtLink
-              to="/layanan?tab=cek"
-              class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 md:px-8 md:py-4 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold text-xs sm:text-sm backdrop-blur-md active:scale-95 transition-all duration-300"
-            >
-              <Search class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Lacak Surat (Via NIK)</span>
-            </NuxtLink>
+            <div class="animate-hero-5 w-full sm:w-auto">
+              <NuxtLink
+                to="/layanan?tab=cek"
+                class="group relative flex items-center justify-center gap-1.5 px-6 py-3 md:px-8 md:py-4 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold text-xs sm:text-sm backdrop-blur-md shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-90 active:-translate-y-0 active:bg-white/30 transition-all duration-300 ease-out w-full"
+              >
+                <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></span>
+                <Search class="w-4 h-4 group-hover:scale-110 group-active:scale-90 transition-transform duration-300" />
+                <span class="relative">Lacak Surat (Via NIK)</span>
+              </NuxtLink>
+            </div>
 
-            <NuxtLink
-              to="/umkm"
-              class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 md:px-7 md:py-4 rounded-full bg-slate-900/60 hover:bg-slate-900/80 border border-slate-700/80 text-emerald-200 font-bold text-xs sm:text-sm backdrop-blur-md transition-all duration-300"
-            >
-              <ShoppingBag class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Belanja UMKM Desa</span>
-            </NuxtLink>
+            <div class="animate-hero-6 w-full sm:w-auto">
+              <NuxtLink
+                to="/umkm"
+                class="group relative flex items-center justify-center gap-1.5 px-6 py-3 md:px-7 md:py-4 rounded-full overflow-hidden bg-slate-900/60 hover:bg-slate-900/80 border border-slate-700/80 text-emerald-200 font-bold text-xs sm:text-sm backdrop-blur-md shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-105 active:scale-90 active:-translate-y-0 transition-all duration-300 ease-out w-full"
+              >
+                <span class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></span>
+                <ShoppingBag class="w-4 h-4 group-hover:-translate-y-1 group-hover:scale-110 transition-transform duration-300" />
+                <span class="relative">Belanja UMKM Desa</span>
+              </NuxtLink>
+            </div>
           </div>
         </div>
       </div>
@@ -344,8 +406,8 @@ function getWhatsappUrl(p: any): string {
     <section class="py-14 md:py-20 bg-white" v-scroll-reveal="{ type: 'up' }">
       <div class="container-app">
         <div class="max-w-4xl mx-auto bg-gradient-to-br from-emerald-50/70 to-slate-50 rounded-3xl border border-emerald-100 p-8 sm:p-12 shadow-sm flex flex-col md:flex-row gap-8 items-center">
-          <div class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-emerald-800 text-white flex items-center justify-center shrink-0 border-4 border-white shadow-xl shadow-emerald-950/10">
-            <User class="w-16 h-16 opacity-90" />
+          <div class="w-32 h-32 md:w-40 md:h-40 rounded-full shrink-0 border-4 border-white shadow-xl shadow-emerald-950/10 overflow-hidden bg-emerald-50">
+            <img src="/images/foto-kades.png" alt="Foto Kepala Desa Wahyu Komara" class="w-full h-full object-cover object-top" />
           </div>
           <div>
             <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-900 text-xs font-bold uppercase tracking-wider mb-3">
@@ -518,6 +580,52 @@ function getWhatsappUrl(p: any): string {
       </div>
     </section>
 
+    <!-- Sorotan Kegiatan -->
+    <section class="py-16 bg-white border-t border-slate-200/80">
+      <div class="container-app">
+        <div class="text-center max-w-2xl mx-auto mb-12" v-scroll-reveal>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60 inline-block mb-3">
+            Dokumentasi Desa
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Sorotan Kegiatan Desa
+          </h2>
+          <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+            Potret semarak perayaan HUT RI ke-79, program pemberdayaan, serta antusiasme warga bergotong royong membangun kemajuan desa.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" v-scroll-reveal="{ stagger: true }">
+          <div 
+            v-for="(kegiatan, index) in galeriKegiatan" 
+            :key="index"
+            class="group rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 relative bg-slate-100"
+          >
+            <div class="aspect-[4/3] w-full overflow-hidden relative">
+              <img 
+                :src="kegiatan.image" 
+                :alt="kegiatan.title" 
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                loading="lazy"
+                decoding="async"
+                @error="handleImageError"
+              />
+              <!-- Teks dan Gradient disembunyikan sementara sampai kontennya sudah fix -->
+              <!-- 
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent opacity-80 transition-opacity group-hover:opacity-90"></div>
+              <div class="absolute bottom-0 left-0 w-full p-5 z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <h3 class="text-white font-bold text-lg mb-1.5 leading-snug">{{ kegiatan.title }}</h3>
+                <p class="text-emerald-50/80 text-xs line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+                  {{ kegiatan.desc }}
+                </p>
+              </div> 
+              -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Showcase Produk UMKM -->
     <section class="py-16 bg-slate-50/70 border-t border-slate-200/80">
       <div class="container-app">
@@ -536,22 +644,48 @@ function getWhatsappUrl(p: any): string {
           </NuxtLink>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" v-scroll-reveal="{ stagger: true }">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6" v-scroll-reveal="{ stagger: true }">
           <div
-            v-for="p in produkUnggulan"
+            v-for="p in produkUnggulan.slice(0, 3)"
             :key="p.id"
-            class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between group"
+            class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
+            v-observe-visibility="(val) => visibleProducts[p.id] = val"
+            @mouseenter="hoveredProduct = p.id"
+            @mouseleave="hoveredProduct = null"
           >
-            <div class="h-44 overflow-hidden bg-slate-100 relative">
+            <!-- Product Image / Video Hover Preview -->
+            <div class="relative h-[240px] md:h-[280px] overflow-hidden bg-slate-900 flex-shrink-0">
               <img
                 :src="getProductImg(p)"
                 :alt="p.nama_produk || p.namaProduk"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                class="w-full h-full object-cover transition-all duration-700 absolute inset-0 z-0"
+                :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'scale-110 blur-sm opacity-50' : 'opacity-100 group-hover:scale-105'"
                 loading="lazy"
                 decoding="async"
                 @error="handleImageError"
               />
-              <span class="absolute top-3 right-3 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-md text-emerald-900">
+              
+              <!-- Netflix-style Hover Autoplay Video -->
+              <iframe
+                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id]))"
+                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105"
+              ></iframe>
+
+              <!-- Overlay CTA -->
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
+                <span class="text-white text-xs font-bold flex items-center gap-1.5">
+                  <Sparkles class="w-3.5 h-3.5 text-emerald-400" />
+                  Lihat Detail & Nyalakan Suara
+                </span>
+              </div>
+
+              <!-- Category Badge -->
+              <span class="absolute top-4 right-4 text-[10px] font-extrabold px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-emerald-900 shadow-sm z-30 pointer-events-none transition-opacity duration-300" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-100'">
                 {{ p.kategori }}
               </span>
             </div>
@@ -685,5 +819,17 @@ function getWhatsappUrl(p: any): string {
   0% { width: 0%; }
   100% { width: 100%; }
 }
+
+@keyframes heroEntry {
+  0% { opacity: 0; transform: translateY(40px) scale(0.95); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.animate-hero-1 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; }
+.animate-hero-2 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; }
+.animate-hero-3 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards; opacity: 0; }
+.animate-hero-4 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards; opacity: 0; }
+.animate-hero-5 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.85s forwards; opacity: 0; }
+.animate-hero-6 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards; opacity: 0; }
 </style>
 

@@ -16,9 +16,27 @@ const { apiGet } = useApi()
 const activeKategori = ref('Semua')
 const searchQuery = ref('')
 const selectedProduct = ref<any | null>(null)
+const hoveredProduct = ref<number | null>(null)
+const isMobile = ref(false)
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    isMobile.value = window.innerWidth < 768
+    window.addEventListener('resize', () => {
+      isMobile.value = window.innerWidth < 768
+    })
+  }
+})
 
 const kategoriList = ['Semua', 'Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya']
 
+// Foto produk lokal sebagai fallback visual yang tetap elegan
+const produkLokal = [
+  { id: 5, namaProduk: 'Kukumbul (Pelampung Pancing)', harga: 80000, kategori: 'Kerajinan', deskripsi: 'Kerajinan pelampung pancing (kukumbul) buatan tangan berkualitas.', pemilik: 'Pengrajin Kukumbul', noWaPemilik: '6281573276932', fotoPath: '/images/kukumbul.jpeg', ytId: 'znTmT3Ovk7w' },
+  { id: 6, namaProduk: 'Sapu Injuk Tradisional', harga: 150000, kategori: 'Kerajinan', deskripsi: 'Sapu injuk buatan tangan asli warga Desa Sukarama. Sangat kuat, awet, dan nyaman digunakan.', pemilik: 'Perajin Injuk Desa', noWaPemilik: '6283817916016', fotoPath: '/images/sapu injuk.jpeg', ytId: '20vErQ0hn14' },
+  { id: 7, namaProduk: 'Doran Pacul Kayu Jati', harga: 140000, kategori: 'Kerajinan', deskripsi: 'Gagang cangkul dari kayu jati berkualitas tinggi yang kokoh untuk kebutuhan pertanian.', pemilik: 'Pengrajin Kayu Sukarama', noWaPemilik: '6285943097900', fotoPath: '/images/doranpacul.jpeg', ytId: 'qKSE2ijrqjA' },
+  { id: 8, namaProduk: 'Pentol Jagoan', harga: 5000, kategori: 'Makanan', deskripsi: 'Pentol Jagoan yang lezat dan gurih. Harga satuan bervariasi dari Rp 1.000, Rp 2.000, hingga Rp 5.000.', pemilik: 'Pentol Jagoan', noWaPemilik: '6283871171146', fotoPath: '/images/products/pentol_jagoan.jpg' },
+]
 const { data: dbProduk } = useAsyncData('umkm-all', () =>
   apiGet<any[]>('/api/umkm').catch(() => []),
   { server: false }
@@ -68,6 +86,34 @@ function getWhatsappUrl(p: any): string {
   const seller = p.pemilik || 'Bapak/Ibu'
   const message = `Halo ${seller}, saya melihat produk "${name}" di Website Resmi Desa Sukarama. Apakah produk ini masih tersedia dan bisa saya pesan?`
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
+const visibleProducts = reactive<Record<number, boolean>>({})
+
+// Directive for autoplay video on mobile scroll
+const vObserveVisibility = {
+  mounted(el: HTMLElement, binding: any) {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        binding.value(true)
+      } else {
+        binding.value(false)
+      }
+    }, { threshold: 0.6 }) // Trigger when 60% of the element is visible
+    
+    // Small delay to ensure layout is done
+    setTimeout(() => {
+      observer.observe(el)
+    }, 100)
+    
+    ;(el as any)._visibilityObserver = observer
+  },
+  unmounted(el: HTMLElement) {
+    if ((el as any)._visibilityObserver) {
+      (el as any)._visibilityObserver.disconnect()
+    }
+  }
 }
 
 // Scroll reveal directive with multiple animation types
@@ -129,8 +175,15 @@ const vScrollReveal = {
 <template>
   <div class="min-h-screen bg-slate-50/60 pb-24">
     <!-- Page Hero -->
-    <section class="relative py-20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 overflow-hidden text-white">
-      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]"></div>
+    <section class="relative py-24 md:py-28 overflow-hidden text-white">
+      <!-- Background Image -->
+      <img src="/images/kantordesa3.png" alt="Background UMKM" class="absolute inset-0 w-full h-full object-cover object-[50%_65%] md:object-[50%_55%] z-0 animate-slow-pan" />
+      
+      <!-- Clean Dark Overlay (Tanpa Hijau Tebal) -->
+      <div class="absolute inset-0 z-[1] bg-gradient-to-tr from-slate-950 via-slate-900/80 to-slate-900/40"></div>
+      <!-- Subtle Grid Pattern (Opsional, lebih elegan dari titik) -->
+      <div class="absolute inset-0 z-[2] opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:40px_40px]"></div>
+
       <div class="container-app relative z-10 text-center">
         <div class="inline-flex items-center gap-2 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full bg-white/10 border border-white/20 mb-4 backdrop-blur-sm">
           <NuxtLink to="/" class="hover:text-white transition-colors">Beranda</NuxtLink>
@@ -168,10 +221,10 @@ const vScrollReveal = {
               <button
                 v-for="kat in kategoriList"
                 :key="kat"
-                class="px-4 py-2 rounded-full text-xs font-bold transition-all"
+                class="px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 active:scale-90 hover:-translate-y-0.5"
                 :class="activeKategori === kat
-                  ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/20'
-                  : 'text-slate-600 bg-slate-100/80 hover:bg-slate-200/80'"
+                  ? 'bg-emerald-900 text-white shadow-md shadow-emerald-950/20 scale-105'
+                  : 'text-slate-600 bg-slate-100/80 hover:bg-slate-200/80 hover:shadow-sm'"
                 @click="activeKategori = kat"
               >
                 {{ kat }}
@@ -181,27 +234,59 @@ const vScrollReveal = {
         </div>
 
         <!-- Product Grid -->
-        <div v-if="filteredProduk.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" v-scroll-reveal="{ stagger: true }">
+        <TransitionGroup
+          v-if="filteredProduk.length > 0"
+          tag="div"
+          class="grid grid-cols-1 md:grid-cols-3 gap-6"
+          enter-active-class="transition-all duration-500 ease-out"
+          enter-from-class="opacity-0 scale-90 translate-y-8"
+          enter-to-class="opacity-100 scale-100 translate-y-0"
+          leave-active-class="transition-all duration-300 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-90"
+          move-class="transition-all duration-500 ease-out"
+        >
           <div
-            v-for="p in filteredProduk"
+            v-for="(p, idx) in filteredProduk"
             :key="p.id"
-            class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
+            class="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
+            :style="{ transitionDelay: `${idx * 80}ms` }"
+            @mouseenter="hoveredProduct = p.id"
+            @mouseleave="hoveredProduct = null"
+            v-observe-visibility="(val) => { visibleProducts[p.id] = val }"
           >
-            <!-- Product Image -->
-            <div class="relative h-48 overflow-hidden bg-slate-100 cursor-pointer" @click="selectedProduct = p">
+            <!-- Product Image / Video Hover Preview -->
+            <div class="relative h-[240px] md:h-[280px] overflow-hidden bg-slate-900 cursor-pointer flex-shrink-0" @click="selectedProduct = p">
+              <!-- Default Thumbnail -->
               <img
                 :src="getProductImg(p)"
-                :alt="p.namaProduk"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                :alt="p.nama_produk || p.namaProduk"
+                class="w-full h-full object-cover transition-all duration-700 absolute inset-0 z-0"
+                :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'scale-110 blur-sm opacity-50' : 'opacity-100 group-hover:scale-105'"
                 @error="handleImageError"
               />
-              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+              
+              <!-- Netflix-style Hover Autoplay Video -->
+              <iframe
+                v-if="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id]))"
+                :src="`https://www.youtube.com/embed/${p.ytId}?autoplay=1&controls=0&modestbranding=1&showinfo=0&rel=0&loop=1&playlist=${p.ytId}`"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                class="w-full h-full absolute inset-0 z-20 pointer-events-none scale-105"
+              ></iframe>
+
+              <!-- Overlay CTA -->
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent transition-opacity duration-300 flex items-end p-4 z-10" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'">
                 <span class="text-white text-xs font-bold flex items-center gap-1.5">
                   <Sparkles class="w-3.5 h-3.5 text-emerald-400" />
-                  Lihat Detail Produk
+                  Lihat Detail & Nyalakan Suara
                 </span>
               </div>
-              <span class="absolute top-3 right-3 text-[10px] font-extrabold px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-emerald-900 shadow-sm">
+              
+              <!-- Category Badge -->
+              <span class="absolute top-4 right-4 text-[10px] font-extrabold px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-emerald-900 shadow-sm z-30 pointer-events-none transition-opacity duration-300" :class="p.ytId && (hoveredProduct === p.id || (isMobile && visibleProducts[p.id])) ? 'opacity-0' : 'opacity-100'">
                 {{ p.kategori }}
               </span>
             </div>
@@ -247,7 +332,7 @@ const vScrollReveal = {
               </div>
             </div>
           </div>
-        </div>
+        </TransitionGroup>
 
         <!-- Empty State -->
         <div v-else class="text-center py-16 bg-white rounded-3xl border border-slate-200/80 p-8 max-w-md mx-auto">
@@ -289,15 +374,25 @@ const vScrollReveal = {
             <X class="w-5 h-5" />
           </button>
 
-          <!-- Modal Image -->
-          <div class="h-64 bg-slate-100 overflow-hidden relative">
+          <!-- Modal Image / Video -->
+          <div class="h-64 md:h-80 bg-slate-100 overflow-hidden relative">
+            <iframe
+              v-if="selectedProduct.ytId"
+              :src="`https://www.youtube.com/embed/${selectedProduct.ytId}?autoplay=1`"
+              title="YouTube video player"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              class="w-full h-full absolute inset-0"
+            ></iframe>
             <img
+              v-else
               :src="getProductImg(selectedProduct)"
               :alt="selectedProduct.namaProduk"
               class="w-full h-full object-cover"
               @error="handleImageError"
             />
-            <span class="absolute bottom-3 left-3 text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 text-white shadow-md">
+            <span class="absolute bottom-3 left-3 text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-900 text-white shadow-md pointer-events-none z-10">
               {{ selectedProduct.kategori }}
             </span>
           </div>
@@ -344,3 +439,14 @@ const vScrollReveal = {
     </Transition>
   </div>
 </template>
+
+<style scoped>
+@keyframes slowZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+.animate-slow-zoom {
+  animation: slowZoom 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+</style>

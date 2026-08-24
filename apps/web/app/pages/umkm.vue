@@ -30,9 +30,11 @@ onMounted(() => {
 
 const kategoriList = ['Semua', 'Makanan', 'Kerajinan', 'Hasil Tani', 'Lainnya']
 
+// getCachedData: () => undefined memaksa refetch tiap kali halaman ini dibuka
+// (lihat catatan yang sama di index.vue) supaya perubahan admin selalu terlihat.
 const { data: dbProduk } = useAsyncData('umkm-all', () =>
   apiGet<any[]>('/api/umkm').catch(() => []),
-  { server: false }
+  { server: false, getCachedData: () => undefined }
 )
 
 const allProduk = computed(() => dbProduk.value || [])

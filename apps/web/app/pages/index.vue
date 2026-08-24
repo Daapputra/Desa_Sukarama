@@ -184,9 +184,14 @@ onUnmounted(() => {
 })
 
 
-// Fetch real data
+// Fetch real data. `getCachedData: () => undefined` memaksa refetch tiap kali
+// halaman ini dibuka — default useAsyncData menyimpan hasil fetch pertama
+// selamanya untuk key ini di dalam sesi browser (SPA), jadi tanpa ini,
+// perubahan yang admin buat lewat dashboard tidak akan pernah muncul di sini
+// kecuali browser di-hard-reload.
 const { data: pengumumanList } = useAsyncData('pengumuman', () =>
-  apiGet<any[]>('/api/pengumuman?limit=3').catch(() => null)
+  apiGet<any[]>('/api/pengumuman?limit=3').catch(() => null),
+  { getCachedData: () => undefined }
 )
 
 const pengumumanLokal = [
@@ -203,7 +208,8 @@ const pengumumanTampil = computed(() => {
 })
 
 const { data: umkmList } = useAsyncData('umkm', () =>
-  apiGet<any[]>('/api/umkm').catch(() => [])
+  apiGet<any[]>('/api/umkm').catch(() => []),
+  { getCachedData: () => undefined }
 )
 
 const stats = [
@@ -215,7 +221,7 @@ const stats = [
 
 function getProductImg(produk: any) {
   const path = produk.foto_path || produk.fotoPath
-  if (path && (path.startsWith('http') || path.startsWith('/images/'))) {
+  if (path && (path.startsWith('http') || path.startsWith('/images/') || path.startsWith('data:'))) {
     return path
   }
   if (produk.kategori === 'Makanan') return '/images/products/keripik.jpg'

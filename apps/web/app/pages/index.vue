@@ -195,9 +195,10 @@ const pengumumanLokal = [
   { id: 3, tanggal: '2026-08-10', judul: 'Penyaluran Bantuan Langsung Tunai (BLT)', konten: 'Pencairan BLT Tahap III bagi Keluarga Penerima Manfaat (KPM) dapat diambil langsung di kantor desa dengan membawa e-KTP dan KK asli.' }
 ]
 
-// null = fetch API gagal (pakai data contoh lokal); array kosong = memang belum ada pengumuman
+// null/undefined (belum resolve atau fetch gagal) = pakai data contoh lokal;
+// array kosong = memang belum ada pengumuman
 const pengumumanTampil = computed(() => {
-  if (pengumumanList.value === null) return pengumumanLokal
+  if (!Array.isArray(pengumumanList.value)) return pengumumanLokal
   return pengumumanList.value.slice(0, 3)
 })
 
@@ -249,9 +250,37 @@ function handleImageError(e: Event) {
   target.src = '/images/products/keripik.jpg'
 }
 
+// Index foto yang sedang tampil per kartu pengumuman (key = id), dipakai untuk
+// auto-rotate slideshow saat pengumuman punya lebih dari 1 foto.
+const cardImgIndex = reactive<Record<number, number>>({})
+let cardImgTimers: Record<number, ReturnType<typeof setInterval>> = {}
+
+function setupCardImgCarousel() {
+  if (!import.meta.client) return
+  Object.values(cardImgTimers).forEach((t) => clearInterval(t))
+  cardImgTimers = {}
+  for (const p of pengumumanTampil.value) {
+    const total = Array.isArray(p.fotos) ? p.fotos.length : 0
+    if (total > 1) {
+      if (!(p.id in cardImgIndex)) cardImgIndex[p.id] = 0
+      cardImgTimers[p.id] = setInterval(() => {
+        cardImgIndex[p.id] = ((cardImgIndex[p.id] ?? 0) + 1) % total
+      }, 3500)
+    }
+  }
+}
+
+watch(pengumumanTampil, () => setupCardImgCarousel(), { immediate: true })
+
+onBeforeUnmount(() => {
+  Object.values(cardImgTimers).forEach((t) => clearInterval(t))
+})
+
 function getPengumumanImg(p: any): string | null {
-  const foto = Array.isArray(p.fotos) && p.fotos.length > 0 ? p.fotos[0] : null
-  return foto || null
+  const fotos = Array.isArray(p.fotos) ? p.fotos : []
+  if (fotos.length === 0) return null
+  const idx = cardImgIndex[p.id] ?? 0
+  return fotos[idx] || fotos[0]
 }
 
 function handlePengumumanImageError(e: Event) {
@@ -263,7 +292,9 @@ const modalImgIndex = ref(0)
 
 function openPengumumanDetail(p: any) {
   selectedPengumuman.value = p
-  modalImgIndex.value = 0
+  // Buka modal di foto yang sedang tampil di kartu (bukan selalu dari foto pertama)
+  // supaya transisi ke detail terasa mulus, bukan lompat balik ke awal.
+  modalImgIndex.value = cardImgIndex[p.id] ?? 0
 }
 
 function closePengumumanDetail() {
@@ -597,19 +628,30 @@ function getWhatsappUrl(p: any): string {
           >
             <div>
               <div v-if="getPengumumanImg(p)" class="relative aspect-video w-full overflow-hidden bg-slate-100">
-                <img
-                  :src="getPengumumanImg(p) ?? ''"
-                  :alt="p.judul"
-                  class="w-full h-full object-cover"
-                  @error="handlePengumumanImageError"
-                />
+                <Transition name="foto-fade" mode="out-in">
+                  <img
+                    :key="cardImgIndex[p.id] ?? 0"
+                    :src="getPengumumanImg(p) ?? ''"
+                    :alt="p.judul"
+                    class="w-full h-full object-cover absolute inset-0"
+                    @error="handlePengumumanImageError"
+                  />
+                </Transition>
                 <span
                   v-if="p.fotos && p.fotos.length > 1"
-                  class="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-950/70 text-white backdrop-blur-sm"
+                  class="absolute bottom-2.5 right-2.5 z-10 inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-950/70 text-white backdrop-blur-sm"
                 >
                   <Images class="w-3 h-3" />
                   {{ p.fotos.length }}
                 </span>
+                <div v-if="p.fotos && p.fotos.length > 1" class="absolute bottom-2.5 left-2.5 z-10 flex gap-1">
+                  <span
+                    v-for="(foto, i) in p.fotos"
+                    :key="i"
+                    class="h-1.5 rounded-full transition-all duration-300"
+                    :class="i === (cardImgIndex[p.id] ?? 0) ? 'w-4 bg-white' : 'w-1.5 bg-white/50'"
+                  ></span>
+                </div>
               </div>
               <div class="p-6">
                 <div class="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 mb-3">
@@ -959,5 +1001,15 @@ function getWhatsappUrl(p: any): string {
 .animate-hero-4 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards; opacity: 0; }
 .animate-hero-5 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.85s forwards; opacity: 0; }
 .animate-hero-6 { animation: heroEntry 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards; opacity: 0; }
+
+/* Pengumuman card image slideshow crossfade */
+.foto-fade-enter-active,
+.foto-fade-leave-active {
+  transition: opacity 0.6s ease;
+}
+.foto-fade-enter-from,
+.foto-fade-leave-to {
+  opacity: 0;
+}
 </style>
 

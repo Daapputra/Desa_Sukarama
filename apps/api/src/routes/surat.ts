@@ -515,10 +515,7 @@ export async function suratRoutes(fastify: FastifyInstance) {
       // must never include the stack trace (file paths, internals) or it leaks to
       // anyone who can reach this endpoint.
       console.error('Error generating document:', error)
-      const details = error.properties && error.properties.errors
-        ? error.properties.errors.map((e: any) => e.message).join(', ')
-        : error.message;
-      return reply.status(500).send({ error: 'Gagal membuat dokumen surat', details })
+      return reply.status(500).send({ error: 'Gagal membuat dokumen surat' })
     }
   })
 }

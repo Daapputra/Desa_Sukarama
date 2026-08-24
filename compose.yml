@@ -16,7 +16,11 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "${POSTGRES_PORT:-5434}:5432"
+      # Bind ke 127.0.0.1 saja — Postgres tidak perlu diakses dari luar host.
+      # Kalau butuh akses dari mesin lain (mis. GUI database di laptop kamu
+      # saat db ini jalan di server), pakai SSH tunnel, jangan buka port ini
+      # ke publik.
+      - "127.0.0.1:${POSTGRES_PORT:-5434}:5432"
   api:
     build:
       context: .
@@ -78,7 +82,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-rahasia}@db:5432/${POSTGRES_DB:-desasukarama}?sslmode=disable
     ports:
-      - "8081:8081"
+      # Pgweb TIDAK punya login sama sekali — siapa pun yang bisa akses port
+      # ini punya akses penuh baca/tulis ke seluruh database (termasuk data
+      # NIK/KK warga). Bind ke 127.0.0.1 saja; akses dari luar server lewat
+      # SSH tunnel (`ssh -L 8081:localhost:8081 user@server`), jangan pernah
+      # buka port ini ke publik.
+      - "127.0.0.1:8081:8081"
 
 volumes:
   postgres_data:

@@ -27,6 +27,11 @@ const activeMobileVideoId = ref<number | null>(null)
 let hoverTimer: ReturnType<typeof setTimeout> | undefined
 
 function onCardEnter(id: number) {
+  // Di perangkat sentuh, `mouseenter` ikut terpicu saat tap tapi `mouseleave`
+  // sering tidak pernah jalan — videonya bisa nyangkut terus main di belakang
+  // modal detail. Di mobile pemutaran sudah diurus IntersectionObserver
+  // (activeMobileVideoId), jadi jalur hover ini dimatikan saja.
+  if (isMobile.value) return
   clearTimeout(hoverTimer)
   // Tunggu sebentar sebelum memutar video — kalau mouse cuma numpang lewat
   // di atas card, video tidak jadi dimuat sama sekali (hemat bandwidth &

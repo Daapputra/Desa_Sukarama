@@ -22,6 +22,11 @@ const isMobile = ref(false)
 let hoverTimer: ReturnType<typeof setTimeout> | undefined
 
 function onCardEnter(id: number) {
+  // Di perangkat sentuh, `mouseenter` ikut terpicu saat tap tapi `mouseleave`
+  // sering tidak pernah jalan — videonya bisa nyangkut terus main di belakang
+  // modal detail. Di mobile pemutaran sudah diurus IntersectionObserver
+  // (activeMobileVideoId), jadi jalur hover ini dimatikan saja.
+  if (isMobile.value) return
   clearTimeout(hoverTimer)
   // Tunggu sebentar sebelum memutar video — kalau mouse cuma numpang lewat
   // di atas card, video tidak jadi dimuat sama sekali (hemat bandwidth &
@@ -253,7 +258,7 @@ const vScrollReveal = {
         <TransitionGroup
           v-if="filteredProduk.length > 0"
           tag="div"
-          class="grid grid-cols-1 md:grid-cols-3 gap-6"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           enter-active-class="transition-all duration-500 ease-out"
           enter-from-class="opacity-0 scale-90 translate-y-8"
           enter-to-class="opacity-100 scale-100 translate-y-0"
@@ -385,7 +390,7 @@ const vScrollReveal = {
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"
         @click.self="selectedProduct = null"
       >
-        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 animate-fade-in relative">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl border border-slate-200 relative">
           <!-- Close button -->
           <button
             class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
